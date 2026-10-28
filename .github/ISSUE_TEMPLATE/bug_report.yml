@@ -1,0 +1,28 @@
+name: Bug report
+description: Report a reproducible problem in the learning lab.
+title: '[Bug]: '
+body:
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Include a small pipeline or a nonprivate sample image if useful.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser, OS and Roveran version
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Screenshots or errors
+      description: Remove private images, filenames and personal information first. Report sensitive vulnerabilities privately using SECURITY.md.

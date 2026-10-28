@@ -1,105 +1,106 @@
 # Roveran
 
-An interactive OpenCV learning lab. Connect image operations, change their parameters, and inspect each result immediately. All pixel processing runs locally in a dedicated WebAssembly worker.
+An open-source OpenCV learning lab. Connect image operations, adjust their parameters, and see what happens at every step. No account, API, database or image upload is required: processing runs in a WebAssembly worker on your device.
 
-![Roveran editor](.impeccable/review/desktop.png)
+![The Roveran learning lab](docs/images/workspace.png)
 
-## Start the lab
+## Start exploring
 
-Requires Node.js 24 and pnpm 11.28.9. The repository includes the pinned OpenCV 4.13.0 runtime and sample images, so guest editing needs no API credentials, database, or runtime CDN.
+Requires **Node.js 24** and **pnpm 11.28.9** (see `.nvmrc` and `package.json`).
 
 ```sh
-pnpm install
+pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open **http://localhost:5173**. Vite serves the editor and proxies `/api` to Fastify on port 3001. The initial edge-detection experiment is ready to edit. Select a node to see its parameters; drag or click a tool to add it. Use the Inspector's input selector as a keyboard alternative to dragging connections. `/` focuses tool search; Ctrl/Command-Z undoes and Ctrl/Command-Shift-Z redoes.
+Open [localhost:5173](http://localhost:5173). The repository includes OpenCV 4.13.0 and two sample images; no runtime CDN is needed. Select a node to change its parameters. Click a tool to append it to the selected node, or drag it onto the graph to place it independently. Drop a single-input tool onto a connection to insert it.
 
-The image comparison supports synchronized pan/zoom, pinned A/B outputs, and a wipe when dimensions match. JSON preserves graph structure and source references; reconnect missing files after importing. Python export produces a complete script with explicit OpenCV color conversions and input filename placeholders. PNG export evaluates the selected B output at original resolution.
+Roveran is for students, curious developers and people learning image processing. Its roadmap prioritizes clear explanations and reproducible experiments. It is an educational tool, with no industrial suitability or operational guarantees. The Apache-2.0 license permits commercial and industrial use.
 
-## Accounts and cloud saving
+## Learn by experimenting
 
-Guest projects and original files autosave to IndexedDB. Cloud accounts are optional.
+The library contains **33 processing tools**, plus image sources: color adjustments and channels, HSV masks, smoothing and sharpening, thresholding, edges, morphology, geometry, blends and bitwise comparisons. The Inspector explains inputs, outputs, parameters and a suggested experiment, with a Python expression and a link to the OpenCV documentation.
+
+Six examples include objectives and two things to try:
+
+| Experiment              | What to look for                             |
+| ----------------------- | -------------------------------------------- |
+| Finding the edges       | Smoothing and Canny thresholds               |
+| Shapes from light       | Thresholding and closing small gaps          |
+| Two ways to see         | Gaussian versus median smoothing             |
+| Finding a color         | HSV ranges and color isolation               |
+| Reading the histogram   | Equalization versus normalization            |
+| What sharpening changes | A difference image revealing affected pixels |
+
+The viewer supports synchronized pan/zoom, side-by-side and wipe comparison, stable A/B pins, transparency, nearest-neighbor display, output-B pixel inspection and histograms. **Fit** scales to the panel; **100%** means one preview pixel per CSS pixel. Auto preview is approximate and caps the longest source edge at 1,024 pixels. Full-resolution preview and PNG export use original-resolution parameters. Histogram and pixel readouts describe displayed preview pixels, including browser color/alpha normalization.
+
+## Keep your experiments
+
+Projects and originals autosave to **IndexedDB in this browser and origin**. The save indicator distinguishes saved work from a temporary session or failed save. Browser data can be cleared or evicted, so download backups of work you want to keep.
+
+- **Portable backup (`.roveran.zip`)** includes the pipeline and original images. Importing creates an independent experiment with fresh project and asset identifiers.
+- **Pipeline JSON** stores the graph and logical source references. Reconnect missing images after importing it elsewhere. Existing schema-version-1 JSON remains supported.
+- **Python / OpenCV** exports a complete script with input filenames, helpers and explicit color conversions. Install the dependencies listed in its header and place the original images beside the script.
+- **PNG** exports output B at original resolution.
+
+Projects can be searched, renamed, duplicated and deleted in Projects. Image replacement never changes the original bytes used by another experiment. No images or projects are sent to a server. There is no analytics or telemetry in the app.
+
+## Offline and static hosting
 
 ```sh
-cp .env.example .env
-# Set BETTER_AUTH_SECRET in .env (generate with: openssl rand -base64 32)
-docker compose up -d
-pnpm db:migrate
-pnpm dev
+pnpm build
+pnpm start
 ```
 
-PostgreSQL uses host port **54329** to avoid interfering with an existing local database. RustFS provides S3-compatible local storage on **9000** and its console on **9001**. These services bind to loopback. Development credentials are in `.env.example`.
+Deploy **`apps/web/dist`** to a static host using HTTPS (localhost also works). Node is needed for development/building, not for the deployed app. Configure HTML/service-worker files to revalidate, and avoid rewriting missing `.js` files to HTML. No server endpoints or environment secrets are needed.
 
-Configure Google and/or GitHub OAuth client credentials in `.env`. Register callback URLs:
-
-- `http://localhost:5173/api/auth/callback/google`
-- `http://localhost:5173/api/auth/callback/github`
-
-For production, use the deployed HTTPS origin in `APP_ORIGIN` and OAuth callbacks, a high-entropy secret, your PostgreSQL URL, and credentials for a private S3-compatible bucket. Set `S3_CREATE_BUCKET=false` when bucket creation is managed separately. A provider button appears enabled only when configured.
-
-A cloud save uploads the graph. **Include original images** explicitly opts that project into image uploads. Subsequent edits autosave; unchanged images are not uploaded again. Turning inclusion off removes that project's cloud image copies. Image processing and derived previews remain local. Cloud revision conflicts preserve local edits and offer **Save as a new copy**. Cloud bindings and their last acknowledged revisions also survive reloads.
-
-## Workspace structure
-
-| Workspace           | Responsibility                                                                     |
-| ------------------- | ---------------------------------------------------------------------------------- |
-| `apps/web`          | React/Vite editor, React Flow graph, Zustand state, local storage, cloud client    |
-| `apps/api`          | Fastify routes, Better Auth, Drizzle schema/migrations, private S3 storage         |
-| `packages/pipeline` | Versioned document schemas, operation registry, graph validation, Python generator |
-| `packages/engine`   | OpenCV adapters, worker protocol, dependency evaluator, caches and cancellation    |
-| `packages/ui`       | Radix dialog/slider primitives and shared controls                                 |
-| `packages/config`   | Shared strict TypeScript configuration                                             |
-
-See [ARCHITECTURE.md](ARCHITECTURE.md) for execution, schema, persistence and extension details. [PRODUCT.md](PRODUCT.md) records the confirmed product requirements; [DESIGN.md](DESIGN.md) records the implemented visual system.
-
-## Checks
+For subdirectory hosting:
 
 ```sh
-pnpm check                   # lint, typecheck, unit/API/WASM tests, production builds
+ROVERAN_BASE_PATH=/roveran/ pnpm build
+```
+
+After the first successful production visit, **Ready offline** confirms the app, fonts, samples and OpenCV runtime have been cached. It can then reopen without internet access while the browser retains that cache. Development mode does not install a service worker. An available update waits for **Save and update**; failed saves require a portable backup before reloading. Clearing site data removes both experiments and offline files.
+
+## Keyboard and graph controls
+
+| Action                            | Control                                                               |
+| --------------------------------- | --------------------------------------------------------------------- |
+| Search tools                      | `/`                                                                   |
+| Undo / redo                       | Ctrl/Command-Z / Ctrl/Command-Shift-Z                                 |
+| Multi-select                      | Shift, Ctrl or Command while selecting nodes                          |
+| Duplicate selected nodes          | Ctrl/Command-D while the graph is focused, or the toolbar             |
+| Remove selection                  | Delete / Backspace, or the toolbar                                    |
+| Insert or disconnect a connection | **Edit a connection**, or Inspector input controls                    |
+| Pan image / zoom                  | Drag or pinch; wheel over a preview                                   |
+| Viewer shortcuts                  | Focus a preview: arrows pan, `+`/`-` zoom, `F` fits, `1` selects 100% |
+| Inspect pixel                     | Choose **Inspect B**, then point at B or use its arrow keys           |
+| Exit expanded viewer              | Escape                                                                |
+
+Auto arrange lays out the graph from left to right. Gestures and batch edits undo as a single action. The Inspector provides keyboard alternatives to connecting ports, insertion and deletion. Smaller screens expose Tools, Workspace and Inspector through panel navigation.
+
+## Contribute
+
+See [CONTRIBUTING.md](CONTRIBUTING.md), [ARCHITECTURE.md](ARCHITECTURE.md), [ROADMAP.md](ROADMAP.md) and the [release validation](docs/validation.md). Bug reports should include reproduction steps and browser details; use sample images whenever possible. Never attach private images without checking their contents.
+
+```sh
+pnpm check                    # lint, typecheck, unit/WASM tests, production build
 pnpm format:check
 pnpm exec playwright install chromium firefox webkit
-pnpm test:e2e                # Chromium, Firefox, WebKit; starts the editor if necessary
-pnpm test:integration        # requires the Compose services; disposable fixtures only
+pnpm test:e2e
 python3 -m venv /tmp/roveran-python
 /tmp/roveran-python/bin/pip install -r tests/requirements.txt
 ROVERAN_PYTHON=/tmp/roveran-python/bin/python pnpm test:parity
 ```
 
-Parity tests execute all 25 generated Python programs with OpenCV 4.13 and compare actual output pixels against WASM. Exact operations require exact matches; architecture-sensitive rounding has explicit tolerances. Linear resizing uses `INTER_LINEAR_EXACT` in both implementations.
+## Limits and compatibility
 
-The worker acceptance test sends rapid superseding jobs, performs 200 edits, checks cache bounds, exports a larger original-resolution image, and measures both incremental and full-chain warmed latency. The 150 ms p95 budget applies to source decode → grayscale → Gaussian blur → Canny at a 1,024-pixel preview on the test machine. Hardware/browser measurements are recorded in `tests/reports/performance.json`; shared CI hardware can vary.
+PNG, JPEG and still WebP inputs: at most 20 MiB, 16 megapixels and 16,384 pixels per edge. Projects support 100 nodes, 250 connections and 20 sources. Portable backups enforce those limits before importing images. Use current Chromium, Firefox or Safari with WebAssembly, workers, OffscreenCanvas and ImageBitmap support.
 
-## Production
+The intermediate-matrix cache is bounded at 128 MiB and graph working matrices at 256 MiB. Display bitmaps, a bounded output-B analysis buffer, image decoding and the WASM heap add overhead. Large images and many branches may exceed device memory. Cancellation occurs between OpenCV calls; a 60-second watchdog offers an engine restart. Original image decoding, ICC profiles, EXIF orientation and native Python rounding can differ. Use normalized PNG fixtures for exact comparisons.
 
-```sh
-pnpm build
-pnpm start                   # Fastify serves both /api and the built frontend
-# Or build the deployment container:
-docker build -t roveran .
-```
+Camera/video, AI, collaboration and industrial integrations are outside this release.
 
-Run migrations before starting a new deployment:
+## License and attribution
 
-```sh
-docker run --rm --env-file .env roveran node apps/api/dist/migrate.js
-docker run --rm --env-file .env -p 3001:3001 roveran
-```
-
-Use deployment database/storage addresses reachable from the container; localhost inside the container refers to that container. Put HTTPS in front of the service and set `APP_ORIGIN` to its public origin. The image runs as the non-root `node` user. `/api/health` reports liveness and whether cloud services are configured.
-
-## Image and runtime constraints
-
-- PNG, JPEG and still WebP; up to 20 MiB and 16 megapixels per file, with at most 16,384 pixels on an edge.
-- Up to 100 nodes and 20 source references per document.
-- Browser decoding normalizes inputs to 8-bit sRGB. ICC profiles, EXIF orientation and JPEG decoder rounding may differ in native Python. Use normalized PNG fixtures for pixel-exact comparisons.
-- Auto preview caps the longest source edge at 1,024 pixels and scales spatial parameters. Odd-kernel rounding makes previews approximate. Full-resolution mode/export uses exact parameters.
-- Intermediate cache limit: 128 MiB; graph working matrices: 256 MiB. If a graph exceeds this budget, reduce source size or branches. WASM's reserved heap may remain at its high-water mark even after allocations are freed.
-- Cancellation occurs between operations; synchronous OpenCV calls complete before cancellation. A 60-second watchdog can restart a stalled worker while keeping the saved document.
-- AI assistance, live camera/video, public sharing, collaboration and custom SIMD/pthread builds are intentionally deferred.
-
-`pnpm runtime:fetch` verifies the checked-in OpenCV runtime checksum or restores the pinned download. Its origin and SHA-256 are recorded beside the file. The runtime's Apache license is included. Production builds also collect dependency license texts, including the bundled font licenses, into `THIRD_PARTY_NOTICES.txt`. The fruit sample comes from [OpenCV's sample data](https://github.com/opencv/opencv/blob/4.13.0/samples/data/fruits.jpg); the calibration chart is generated by `scripts/generate-chart.py`.
-
-## Verified build
-
-The validation recorded for this implementation includes 57 unit/API/WASM tests, 4 real PostgreSQL/Better Auth/S3 integration tests, and all 25 generated Python programs. Eleven browser scenarios pass in each engine: Chromium and WebKit on macOS, Firefox in the official Playwright Linux container (the local macOS Firefox runtime could not open its temporary profile). The reference Chromium run measured approximately 57 ms p95 for a complete warmed preview and 14 ms p95 for incremental edits on Apple M4 Pro. Re-run the checks on deployment hardware before adopting those timings as a guarantee.
+[Apache-2.0](LICENSE). See [NOTICE](NOTICE) for OpenCV, samples and font attribution. Production builds include dependency licenses. `pnpm runtime:fetch` verifies or restores the pinned runtime using its recorded checksum; it does not silently upgrade OpenCV.

@@ -10,8 +10,10 @@ coverage/
 
 .pnpm-store/
 apps/web/public/engine-worker.js*
-.impeccable/review/
+.impeccable/
 tests/reports/
 tests/parity-report.json
 *.tsbuildinfo
 apps/web/public/THIRD_PARTY_NOTICES.txt
+
+._*

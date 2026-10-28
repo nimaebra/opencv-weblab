@@ -1,61 +1,49 @@
 # Architecture
 
-## Execution boundaries
+## Boundaries
 
-The React UI owns the editable document and selection, not image matrices. A classic browser worker loads the self-hosted OpenCV runtime with `importScripts`. Its compatibility loader wraps the older Emscripten self-resolving thenable; directly awaiting that object would loop indefinitely.
+Roveran is a static React/Vite app. There are no server APIs, accounts or image uploads.
 
 ```mermaid
 flowchart LR
-  UI[React editor] -->|typed messages / source blobs| W[Worker evaluator]
-  W --> CV[OpenCV.js WASM]
-  W -->|transfer ImageBitmaps + metadata| UI
-  UI <--> IDB[IndexedDB]
-  UI <--> API[Fastify / Better Auth]
-  API <--> PG[PostgreSQL]
-  API <--> S3[Private S3 originals, explicit opt-in]
+  UI[React editor] -->|typed requests and source blobs| W[OpenCV worker]
+  W --> CV[OpenCV.js / WASM]
+  W -->|ImageBitmaps and metadata| UI
+  UI <--> IDB[IndexedDB: projects and originals]
+  UI <--> ZIP[Portable backup files]
+  SW[Service worker] --> Cache[Static app cache]
 ```
 
-The worker creates matrices from `ImageData` and renders through `OffscreenCanvas`. DOM helpers such as `cv.imread` and `cv.imshow` are not used. An imperative frame store owns transferred bitmaps and closes replaced resources. React/Zustand holds only graph data, result metadata and statuses.
+`packages/pipeline` owns registry metadata, schemas, graph validation/editing and Python generation. `packages/engine` owns OpenCV adapters, the dependency evaluator, worker protocol and imperative frame store. `packages/ui` supplies accessible shared controls. `apps/web` owns the editor, project persistence, backups and offline lifecycle. `packages/config` supplies strict TypeScript settings.
 
-A dependency-ordered evaluation isolates errors to each branch. Valid inputs are immutable; operations create outputs. Disabled operations pass input A through. Graph edits coalesce for 24 ms, carry monotonically increasing revisions, and replace the pending evaluation. Worker yields between nodes permit cancellation without claiming to interrupt a synchronous WASM call. Late frames are closed instead of displayed.
+## Execution and analysis
 
-Cache keys are SHA-256 hashes of the OpenCV/operation version, validated parameters, enabled state, source generation, quality scale and upstream hashes. Display names, positions and preview pins do not invalidate image computation. The cache uses LRU eviction at 128 MiB. Full-resolution export computes only the selected output's dependency graph, uses a separate uncached run, and releases matrices after their last consumer. A working-set guard rejects oversized graphs at 256 MiB of live graph matrices; additional decoding/rendering buffers and the runtime heap are separate overhead.
+A classic worker loads the pinned OpenCV runtime relative to its own URL. The compatibility loader wraps Emscripten's self-resolving thenable rather than directly awaiting it. Source decoding and matrix processing use OffscreenCanvas; DOM-only `cv.imread`/`cv.imshow` helpers are not used.
 
-## Document contract
+Evaluation follows dependency order and isolates branch errors. Edits coalesce for 24 ms and carry increasing revisions. A newer request replaces pending evaluation; cancellation yields between operations, not during synchronous WASM calls. Superseded frames are closed. The frame store owns transferred bitmaps outside React/Zustand; replacing a frame closes the old resource.
 
-`PipelineDocument` has `schemaVersion: 1`, an ID/name, operation nodes, port-indexed edges, logical source references, preview targets/quality, and a graph viewport. Images, transient errors, signed URLs, OAuth data and matrices are never serialized into the document.
+Cache keys include runtime/operation versions, parameters, enabled state, source generation, preview scale and upstream hashes. Labels, positions and preview pins do not invalidate computation. An LRU bounds cached matrices at 128 MiB; a graph working-set guard rejects more than 256 MiB of live matrices. Full-resolution export evaluates only the requested dependency graph without populating the preview cache. A 60-second watchdog exposes restart recovery.
 
-Nodes identify an operation and its version, hold explicit parameters/defaults, an enabled flag, optional source ID, and position. Input 0 is A; input 1 is B. Structural parsing rejects unknown operations, invalid parameters, duplicate identifiers, malformed ports and cycles. Incomplete experiments can be stored locally; evaluation and Python export report missing inputs and mode/dimension incompatibilities rather than silently inserting conversions.
+Output-B inspection clones the displayed bitmap into the worker, which keeps one analysis ImageData buffer. Requests and replies carry frame revision, node and request identifiers; stale analysis and pixel samples are ignored. Histograms and pixel values describe displayed preview pixels. Canvas transforms invert the exact fit/zoom/pan mapping; device-pixel-ratio changes affect canvas backing resolution, not the definition of 100% zoom.
 
-The initial image domains are 8-bit RGBA and grayscale. Grayscale-only tools require an explicit conversion node. Sobel/Laplacian calculate signed derivatives and expose `convertScaleAbs` as an 8-bit visualization. Point/color adjustments preserve alpha; spatial operations process the channels of their input. Combining requires equal shape and color mode. Bypassed operations pass A through.
+## Documents and edits
 
-## Adding an operation
+`PipelineDocument` remains `schemaVersion: 1`. It contains nodes, versioned operation parameters, port-indexed edges, logical source references, A/B preview targets and a graph viewport. It never embeds images, matrices, credentials or temporary runtime errors. Input 0 is A; input 1 is B. Parsing validates operations, parameters, identifiers, ports and cycles, while allowing incomplete experiments.
 
-1. Add its versioned metadata, parameter bounds/defaults and explanations to the pipeline registry.
-2. Add its OpenCV adapter to `packages/engine/src/operations.ts`, with deterministic cleanup of every temporary matrix.
-3. Add a Python expression/helper in the generator with matching normalization and color semantics.
-4. Extend real-WASM tests and Python parity coverage. Include boundary/invalid-mode fixtures when the new operation adds an input contract.
+The image model is 8-bit RGBA or grayscale. Grayscale-only operations require an explicit conversion node. HSV masking explicitly converts inside its documented operation and returns grayscale; it does not introduce an HSV graph domain. Disabled operations pass input A through. Merge inputs must have equal dimensions and modes. New difference/XOR tools preserve input A's alpha; sharpen preserves source alpha.
 
-UI controls derive from parameter metadata; the engine and API share the same schema. The registry stays serializable; executable adapters/generators live in their owning packages and dispatch using the registry identifier.
+Insertion validates both replacement connections before committing. Batch duplication remaps internal edges and retains valid incoming references; it does not duplicate external outgoing connections. Source blobs are immutable and may be shared. Selection/follow state is editor state, while the chosen preview targets and viewport persist in the document. History holds at most 50 snapshots; each gesture or batch action creates one checkpoint.
 
-## API and persistence
+## Local persistence and portability
 
-`/api/auth/*` delegates to Better Auth with correct multiple Set-Cookie forwarding. `/api/config` exposes configured provider names, never secrets. Sessions use signed HttpOnly cookies. State-changing API requests validate browser origins and routes are rate limited.
+IndexedDB `roveran` version 2 retains the original `projects`, `assets` and `settings` stores. Migration removes obsolete `cloud:*` settings without deleting graphs, blobs or `lastProject`. Project records preserve the v1 shape with an `updatedAt` field. Writes are serialized. In-memory records keep the latest session recoverable if persistence fails; UI status never treats that fallback as a successful durable save.
 
-| Endpoint                                    | Behavior                                             |
-| ------------------------------------------- | ---------------------------------------------------- |
-| `GET /api/health`                           | Liveness/configuration                               |
-| `GET/POST /api/v1/projects`                 | Owner-scoped list/create                             |
-| `GET/PUT/DELETE /api/v1/projects/:id`       | Owner-scoped load, compare-and-swap update, deletion |
-| `PUT /api/v1/projects/:id/assets/:sourceId` | Opt-in-gated raw PNG/JPEG/WebP upload                |
-| `GET /api/v1/projects/:id/assets/:sourceId` | Authenticated private image download                 |
+Reconnection allocates a new source ID. Garbage collection considers every saved project, session record, active history snapshot and pending image before deleting blobs. Imported images and their project are written in one transaction; failure aborts durable writes and retains session data for a backup.
 
-Project writes contain `{ document, syncImages, revision? }`; revision is required for updates. An atomic database predicate on ID, owner and revision prevents lost updates. Responses omit owner internals. Missing/foreign projects return 404; stale writes return 409. Uploads are capped at 20 MiB, inspect image metadata and magic bytes, reject animated inputs and verify source dimensions/format. Object keys are server-generated. A row lock rechecks image opt-in when committing an upload. Opt-out removes the asset references and cloud objects; project deletion also cleans associated objects. Storage cleanup failures are logged for operator attention.
+A `.roveran.zip` contains `manifest.json` (`format: roveran-project`, version 1), `project.json` and `assets/<sourceId>.<png|jpg|webp>`. The manifest maps logical source IDs to those entries. Already-compressed originals use ZIP STORE. Import checks entry paths, duplicates, counts and expanded sizes before decompression, then validates the document, image signatures, dimensions and references before writing. Imports get fresh project/source identifiers. Graph-only JSON stays portable independently of this container format.
 
-IndexedDB stores documents, blobs, last-opened project and cloud acknowledgements. Local saves continue without network access. A cloud binding records the last acknowledged document/revision; reloading does not turn an existing cloud project into a new create. A save acknowledges the graph before uploading optional images, so an image retry uses the correct revision. SHA-256 fingerprints suppress unchanged uploads. Autosave waits for in-flight writes and follows up when newer edits remain; conflicts stop automatic cloud writes and preserve local changes for Save as a new copy.
+## Offline build
 
-## Validation and operations
+Vite's configured base path is applied at request boundaries; logical built-in references in old JSON stay unchanged. The generated service worker precaches hashed UI assets, fonts, samples, the engine worker and OpenCV runtime. Its per-file ceiling explicitly accommodates the approximately 10 MiB runtime. Development does not register a worker.
 
-Vitest covers contracts, actual WASM operations and injected API behavior. Opt-in integration tests exercise real PostgreSQL compare-and-swap, Better Auth signed sessions and S3 object lifecycle. Playwright covers desktop/mobile editing, offline use, recovery, exports, branch errors, scheduler behavior and memory/performance in Chromium, Firefox and WebKit. Python parity runs generated programs against controlled RGBA fixtures.
-
-CI runs all checks, builds, integration/parity tests and browser coverage. No database migration runs automatically on API startup; deployment applies the explicit migration before starting the new service. Fastify emits structured request/error logs without logging source pixels or OAuth credentials. Guest mode remains available when cloud configuration is absent.
+The app reports offline readiness only after installation or an existing controlling worker. Updates wait for an explicit action; pending edits flush before activation. A failed save requires a portable backup before reload. Browser storage/cache eviction can still remove local work. Production is served from `apps/web/dist` over HTTPS or localhost, with no backend configuration.

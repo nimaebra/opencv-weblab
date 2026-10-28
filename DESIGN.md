@@ -153,7 +153,7 @@ Roveran uses warm paper chrome, botanical green controls, and deep gray image st
 
 The implemented world is dense, with quiet separators and small changes in surface tone. Images carry the visual weight. Interface typography remains restrained; code and measurements have a distinct monospaced voice. Motion is limited to short control feedback.
 
-This system is extracted from the shipped code and desktop/mobile review captures. The approved direction is recorded in `.impeccable/direction.md` with successful service seed `fe876f05`; no generated comp was approved or used. The preview-first topology is a confirmed product constraint in `PRODUCT.md`.
+This system is extracted from the shipped code and desktop/mobile review captures. The approved direction preserves the original workbench layout and visual identity. The preview-first topology is a confirmed product constraint in `PRODUCT.md`.
 
 **Key Characteristics:**
 
@@ -231,7 +231,7 @@ At widths of at least (1600px), side panels widen to (248px) and (310px). At wid
 
 At widths of at most (950px), Tools / Workspace / Inspector navigation replaces the persistent sidebars. Tools opens a left overlay up to (320px); Inspector opens a right overlay up to (340px). The graph retains compact Undo / Redo controls. Preview height becomes (43vh), and workspace minimum height becomes (550px).
 
-At widths of at most (600px), the header becomes (58px), the experiment strip (48px), and panel navigation (39px). The preview uses (340px) height and a (7px) frame gap; captions stack vertically. The workspace minimum height is (560px). Project and cloud actions use icons with explicit accessible labels, while Export and panel navigation retain visible words. Dialog padding becomes (20px), and dialog footers stack.
+At widths of at most (600px), the header becomes (58px), the experiment strip (48px), and panel navigation (39px). The preview uses (340px) height and a (7px) frame gap; captions stack vertically. The workspace minimum height is (560px). Project and project actions use icons with explicit accessible labels, while Export and panel navigation retain visible words. Dialog padding becomes (20px), and dialog footers stack.
 
 **The Preview-First Rule.** In the editor, comparison remains above the graph. Narrow layouts expose the supporting panels through named navigation without moving them into the image stage.
 
@@ -280,7 +280,7 @@ Focus shares the green outline; the caret uses the action accent. Disabled input
 
 ### Navigation
 
-Desktop navigation lives in the header and permanent side panels. Narrow-screen panel navigation uses three text buttons; the selected panel has a pale green fill and darker green text. It exposes the selected state through `aria-pressed`. Header actions may collapse to icons, retaining accessible names such as Projects, Sign in, and Cloud save.
+Desktop navigation lives in the header and permanent side panels. Narrow-screen panel navigation uses three text buttons; the selected panel has a pale green fill and darker green text. It exposes the selected state through `aria-pressed`. Header actions may collapse to icons, retaining accessible names such as Projects and Export.
 
 ### Image Comparison
 
@@ -288,7 +288,7 @@ Two dark frames provide a shared reference system, each with an A/B slot, node n
 
 ### Dialogs and Feedback
 
-Dialogs use a paper surface, the larger modal radius, centered constrained width, and a dark translucent overlay. Their title and description precede controls; a drawn close icon stays visible. Cloud provider actions retain full visible labels within the dialog. Toasts sit above the status bar as compact dark notices with an optional action.
+Dialogs use a paper surface, the larger modal radius, centered constrained width, and a dark translucent overlay. Their title and description precede controls; a drawn close icon stays visible. Local project actions and portable backup controls retain visible labels within the dialog. Toasts sit above the status bar as compact dark notices with an optional action.
 
 ## Do's and Don'ts
 
@@ -309,3 +309,9 @@ Dialogs use a paper surface, the larger modal radius, centered constrained width
 - **Don't** rely on color alone for category, runtime, error, or selection meaning.
 - **Don't** place a category eyebrow above the selected operation title; keep the implemented adjacent label.
 - **Don't** turn the paper panels into stacks of decorative cards or apply modal shadows to persistent chrome.
+
+## Local learning lab additions
+
+The viewer now separates Fit and 100%, offers output-B inspection and a compact optional histogram, and uses an image-transparency checkerboard only on image stages. A/B pins can remain stable while selecting graph nodes. The existing dark stages, paper chrome, typography and category colors are retained. Learning objectives sit in a compact disclosure below the example selector.
+
+Connection editing and selection actions remain adjacent to the graph. Local project dialogs contain search, rename, duplicate and inline deletion confirmation. A persistent warm notice names storage failure and offers a portable backup; updates wait for a save or backup before reload.

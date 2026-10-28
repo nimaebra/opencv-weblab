@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-Confirmed: React, Vite, TypeScript, React Flow, Zustand, Tailwind CSS, Radix primitives; Node 24, Fastify, Better Auth, PostgreSQL, Drizzle; pnpm and Turborepo.
+Confirmed: React, Vite, TypeScript, React Flow, Zustand, Tailwind CSS and Radix primitives; IndexedDB, fflate, Dagre and Vite PWA; Node 24 for development/building, pnpm and Turborepo. Static deployment, no server API.
 
 ## Users
 
@@ -24,11 +24,11 @@ Preview-first lab: searchable library left, comparison above the graph, paramete
 
 ## Capabilities and Constraints
 
-25 operations, multiple still-image inputs, branches and merges, Python and JSON export, guest editing with local persistence, optional Google/GitHub accounts and cloud projects. Original images sync only after explicit opt-in. All pixel processing runs in a browser worker. No generative AI, camera/video, public sharing, or collaboration in v1.
+33 processing tools plus image sources, multiple still-image inputs, branches and merges, Python/JSON/PNG export and portable backups including originals. Projects autosave on this device. Production supports offline reopening and controlled updates. Viewer includes pixel inspection, histograms and true-size zoom. Graph edits are atomic and undoable. No generative AI, camera/video, public sharing or collaboration in v0.2.
 
 ## Brand Commitments
 
-Roveran is the working name. The user approved the preview-first lab layout and requested a strong, responsive UI.
+Roveran is the project name. The user approved the preview-first lab layout and requested a strong, responsive UI.
 
 ## Evidence on Hand
 
@@ -39,8 +39,10 @@ References: michaelgallacher/opencv-pipeline and cpvrlab/ImagePlay for interacti
 - Show the effect of an operation and explain its parameters.
 - Keep the editor responsive while processing.
 - Make graphs reproducible and exportable.
-- Keep guest editing useful without a backend.
-- Never upload source images without opt-in.
+- Keep the full learning lab useful without accounts or a backend.
+- Keep source images and projects on the device.
+- Teach input/output contracts and expose reproducible Python.
+- Prioritize learning rather than industrial operational requirements.
 
 ## Accessibility & Inclusion
 

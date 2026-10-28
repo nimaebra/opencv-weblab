@@ -1,0 +1,18 @@
+name: Learning improvement
+description: Suggest a feature or explanation that would help learners.
+title: '[Idea]: '
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is difficult to understand or do?
+      description: Describe the learner and the image-processing concept involved.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed improvement
+      description: Explain how this could work in a browser without a backend.
+    validations:
+      required: true
