@@ -1,7 +1,10 @@
+import { lessons, type LessonKind } from './lessons';
 import { z } from 'zod';
 import { registry, parameterSchema, defaults, type ImageMode } from './registry';
 export * from './registry';
 export * from './python';
+export * from './editing';
+export * from './lessons';
 export const OPENCV_VERSION = '4.13.0';
 export const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 export const MAX_IMAGE_PIXELS = 4096 * 4096;
@@ -95,6 +98,8 @@ export function validateGraph(doc: PipelineDocument, requireInputs = true): Grap
   const issues: GraphIssue[] = [];
   const ids = new Set<string>();
   const sourceIds = new Set(doc.sources.map((s) => s.id));
+  if (sourceIds.size !== doc.sources.length)
+    issues.push({ code: 'source', message: 'Duplicate source identifier.' });
   const edgeIds = new Set<string>();
   const occupied = new Set<string>();
   for (const n of doc.nodes) {
@@ -190,7 +195,7 @@ export function validateGraph(doc: PipelineDocument, requireInputs = true): Grap
 }
 export function parseDocument(input: unknown): PipelineDocument {
   const doc = documentSchema.parse(input);
-  const issues = validateGraph(doc, false).filter((i) => i.code !== 'source');
+  const issues = validateGraph(doc, false).filter((i) => i.code !== 'source' || !i.nodeId);
   if (issues.length) throw new Error(issues.map((i) => i.message).join('\n'));
   return doc;
 }
@@ -230,6 +235,22 @@ export function connect(
     throw new Error(
       `${def.label} requires ${def.accepts === 'gray' ? 'grayscale' : 'color'} input. Insert a ${def.accepts === 'gray' ? 'Grayscale' : 'color source'} node.`,
     );
+  if (def.inputs === 2) {
+    const inputs = next.edges.filter((e) => e.target === target).sort((a, b) => a.input - b.input);
+    if (inputs.length === 2) {
+      const sizes = inferDimensions(next),
+        modes = inferModes(next);
+      const first = sizes.get(inputs[0]!.source),
+        second = sizes.get(inputs[1]!.source);
+      if (
+        (modes.get(inputs[0]!.source) &&
+          modes.get(inputs[1]!.source) &&
+          modes.get(inputs[0]!.source) !== modes.get(inputs[1]!.source)) ||
+        (first && second && (first.width !== second.width || first.height !== second.height))
+      )
+        throw new Error('Inputs A and B must have identical dimensions and color mode.');
+    }
+  }
   return next;
 }
 export function newNode(operation: string, x = 0, y = 0): PipelineNode {
@@ -284,13 +305,9 @@ export function descendants(doc: PipelineDocument, id: string): Set<string> {
   }
   return result;
 }
-export function makeExample(kind: 'edges' | 'morphology' | 'branches' = 'edges'): PipelineDocument {
+export function makeExample(kind: LessonKind = 'edges'): PipelineDocument {
   const doc = emptyDocument();
-  doc.name = {
-    edges: 'Finding the edges',
-    morphology: 'Shapes from light',
-    branches: 'Two ways to see',
-  }[kind];
+  doc.name = lessons.find((l) => l.id === kind)!.title;
   doc.sources = [
     {
       id: 'sample-fruit',
@@ -302,32 +319,47 @@ export function makeExample(kind: 'edges' | 'morphology' | 'branches' = 'edges')
     },
   ];
   const source = { ...newNode('source', 0, 45), sourceId: 'sample-fruit' };
-  const gray = newNode('grayscale', 230, 45);
-  const blur = newNode('gaussian', 460, 45);
-  const end = newNode(kind === 'morphology' ? 'otsu' : 'canny', 690, 45);
-  doc.nodes = [source, gray, blur, end];
-  doc.edges = [
-    { id: 'e1', source: source.id, target: gray.id, input: 0 },
-    { id: 'e2', source: gray.id, target: blur.id, input: 0 },
-    { id: 'e3', source: blur.id, target: end.id, input: 0 },
-  ];
-  if (kind === 'morphology') {
-    const close = newNode('close', 920, 45);
-    doc.nodes.push(close);
-    doc.edges.push({ id: 'e4', source: end.id, target: close.id, input: 0 });
-    doc.preview.b = close.id;
-  } else if (kind === 'branches') {
-    const median = newNode('median', 460, 250);
-    doc.nodes.push(median);
-    doc.edges.push({ id: 'e4', source: gray.id, target: median.id, input: 0 });
-    doc.preview.b = median.id;
-  } else doc.preview.b = end.id;
+  doc.nodes = [source];
   doc.preview.a = source.id;
+  function add(operation: string, parent: string, x: number, y = 45) {
+    const node = newNode(operation, x, y);
+    doc.nodes.push(node);
+    doc.edges.push({ id: crypto.randomUUID(), source: parent, target: node.id, input: 0 });
+    return node;
+  }
+  if (kind === 'color-mask') {
+    const mask = add('hsv-mask', source.id, 240);
+    mask.parameters = { hMin: 0, hMax: 25, sMin: 100, sMax: 255, vMin: 50, vMax: 255 };
+    const close = add('close', mask.id, 480);
+    doc.preview.b = close.id;
+  } else if (kind === 'sharpen') {
+    const sharp = add('sharpen', source.id, 240);
+    const diff = add('absdiff', source.id, 480);
+    doc.edges.push({ id: crypto.randomUUID(), source: sharp.id, target: diff.id, input: 1 });
+    doc.preview.b = diff.id;
+  } else {
+    const gray = add('grayscale', source.id, 230);
+    if (kind === 'contrast') {
+      const equal = add('equalize', gray.id, 460);
+      add('normalize', gray.id, 460, 250);
+      doc.preview.a = gray.id;
+      doc.preview.b = equal.id;
+    } else {
+      const blur = add('gaussian', gray.id, 460);
+      const end = add(kind === 'morphology' ? 'otsu' : 'canny', blur.id, 690);
+      if (kind === 'morphology') doc.preview.b = add('close', end.id, 920).id;
+      else if (kind === 'branches') {
+        const median = add('median', gray.id, 460, 250);
+        doc.preview.a = blur.id;
+        doc.preview.b = median.id;
+      } else doc.preview.b = end.id;
+    }
+  }
   return doc;
 }
 
 export function inferDimensions(
-  doc: PipelineDocument,
+  doc: Pick<PipelineDocument, 'nodes' | 'edges' | 'sources'>,
 ): Map<string, { width: number; height: number }> {
   const sizes = new Map<string, { width: number; height: number }>();
   for (const node of topologicalOrder(doc)) {

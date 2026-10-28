@@ -1,9 +1,10 @@
+import { assetUrl } from './paths';
 import { newNode } from '@roveran/pipeline';
 import { putAsset } from './persistence';
 import { useLab } from './store';
 export async function addColorChart() {
   try {
-    const response = await fetch('/samples/calibration.png');
+    const response = await fetch(assetUrl('/samples/calibration.png'));
     if (!response.ok) throw new Error('The sample could not load.');
     const blob = await response.blob();
     const id = crypto.randomUUID();

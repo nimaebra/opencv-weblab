@@ -1,10 +1,9 @@
-import { useState, useEffect, useRef, useCallback, useEffectEvent } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   newNode,
   parseDocument,
+  emptyDocument,
   executionSignature,
-  MAX_IMAGE_BYTES,
-  MAX_IMAGE_PIXELS,
   type PipelineDocument,
 } from '@roveran/pipeline';
 import { useLab } from './store';
@@ -13,303 +12,252 @@ import {
   saveLocal,
   readLocal,
   listLocal,
+  deleteLocal,
+  collectUnusedAssets,
   putAsset,
   resolveAssets,
-  getCloudBinding,
-  putCloudBinding,
+  getStorageState,
 } from './persistence';
-import { cloud, authClient, ConflictError, type CloudProject } from './cloud';
-type Panel = 'workspace' | 'tools' | 'inspector';
+import { independentDocument, readBackup, validateImage, createBackup } from './projectFiles';
+import { download } from './persistence';
+export type SaveStatus = 'saving' | 'saved' | 'temporary' | 'failed';
 export function useWorkspaceController() {
   const doc = useLab((s) => s.document),
-    notice = useLab((s) => s.notice),
-    past = useLab((s) => s.past.length),
+    notice = useLab((s) => s.notice);
+  const past = useLab((s) => s.past.length),
     future = useLab((s) => s.future.length);
-
-  const [hydrated, setHydrated] = useState(false),
-    [saved, setSaved] = useState(false),
-    [panel, setPanel] = useState<Panel>('workspace'),
-    [dialog, setDialog] = useState<'projects' | 'export' | 'cloud' | null>(null),
-    [exportTab, setExportTab] = useState<'python' | 'json'>('python'),
-    [localProjects, setLocalProjects] = useState<{ id: string; name: string; updatedAt: number }[]>(
-      [],
-    ),
-    [cloudProjects, setCloudProjects] = useState<CloudProject[]>([]),
-    [cloudProject, setCloudProject] = useState<CloudProject | null>(null),
-    [includeImages, setIncludeImages] = useState(false),
-    [cloudBusy, setCloudBusy] = useState(false),
-    [cloudError, setCloudError] = useState(''),
-    [conflict, setConflict] = useState(false),
-    [user, setUser] = useState<{ name: string; email: string } | null>(null),
-    [providers, setProviders] = useState<('google' | 'github')[]>([]),
-    [cloudAvailable, setCloudAvailable] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('saving');
+  const [panel, setPanel] = useState<'workspace' | 'tools' | 'inspector'>('workspace');
+  const [dialog, setDialog] = useState<'projects' | 'export' | null>(null);
+  const [exportTab, setExportTab] = useState<'python' | 'json'>('python');
+  const [localProjects, setLocalProjects] = useState<
+    { id: string; name: string; updatedAt: number }[]
+  >([]);
   const workspace = useRef<HTMLDivElement>(null);
-  const activeProject = useRef<CloudProject | null>(null);
   const reconnectNode = useRef<string | null>(null);
-  const saving = useRef(false);
-  const lastCloudSnapshot = useRef('');
+  const navigation = useRef(0);
   const signature = executionSignature(doc);
-  const refreshSession = useCallback(async () => {
+  const flushLocal = useCallback(async () => {
+    const document = useLab.getState().document;
+    const snapshot = JSON.stringify(document);
     try {
-      const [config, session] = await Promise.all([cloud.config(), cloud.session()]);
-      setProviders(config.providers);
-      setCloudAvailable(config.cloud && config.providers.length > 0);
-      setUser(session?.user ?? null);
+      await resolveAssets(document);
+      await saveLocal(document);
+      if (JSON.stringify(useLab.getState().document) === snapshot) setSaveStatus('saved');
+      return true;
     } catch {
-      setCloudAvailable(false);
+      setSaveStatus(getStorageState() === 'temporary' ? 'temporary' : 'failed');
+      return false;
     }
   }, []);
   useEffect(() => {
     let mounted = true;
     void readLocal()
-      .then(async (document) => {
-        if (mounted) {
-          if (document) {
-            useLab.getState().replace(document);
-            const binding = (await getCloudBinding(document.id)) as CloudProject | undefined;
-            if (binding) {
-              activeProject.current = binding;
-              lastCloudSnapshot.current = JSON.stringify(binding.document);
-              setCloudProject(binding);
-              setIncludeImages(binding.syncImages);
-            }
-          }
-          setHydrated(true);
-        }
+      .then((document) => {
+        if (!mounted) return;
+        if (document) useLab.getState().replace(document);
+        setHydrated(true);
       })
       .catch(() => {
         if (mounted) {
+          setSaveStatus('temporary');
           setHydrated(true);
-          useLab
-            .getState()
-            .notify('Local storage is unavailable. Export JSON before closing this tab.');
         }
       });
     startRuntime();
-    void refreshSession();
     return () => {
       mounted = false;
     };
-  }, [refreshSession]);
+  }, []);
   useEffect(() => {
     if (hydrated) void evaluate(useLab.getState().document);
   }, [signature, hydrated]);
   useEffect(() => {
     if (!hydrated) return;
-    setSaved(false);
-    const timer = setTimeout(
-      () =>
-        void saveLocal(doc)
-          .then(() => setSaved(true))
-          .catch(() =>
-            useLab
-              .getState()
-              .notify('Device storage is full or unavailable. Export JSON to keep your project.'),
-          ),
-      400,
-    );
+    setSaveStatus('saving');
+    const timer = setTimeout(() => void flushLocal(), 400);
     return () => clearTimeout(timer);
-  }, [doc, hydrated]);
+  }, [doc, hydrated, flushLocal]);
+  useEffect(() => {
+    const storage = () => {
+      if (getStorageState() !== 'available')
+        setSaveStatus(getStorageState() === 'temporary' ? 'temporary' : 'failed');
+    };
+    const reconnect = (e: Event) => {
+      reconnectNode.current = (e as CustomEvent<string>).detail;
+      document.getElementById('reconnect-input')?.click();
+    };
+    const visibility = () => {
+      if (document.visibilityState === 'hidden') void flushLocal();
+    };
+    const unload = (e: BeforeUnloadEvent) => {
+      if (getStorageState() !== 'available') {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('roveran-storage', storage);
+    window.addEventListener('roveran-reconnect', reconnect);
+    window.addEventListener('beforeunload', unload);
+    document.addEventListener('visibilitychange', visibility);
+    return () => {
+      window.removeEventListener('roveran-storage', storage);
+      window.removeEventListener('roveran-reconnect', reconnect);
+      window.removeEventListener('beforeunload', unload);
+      document.removeEventListener('visibilitychange', visibility);
+    };
+  }, [flushLocal]);
   useEffect(() => {
     if (!notice) return;
-    const timeout = setTimeout(() => useLab.getState().notify(''), 7000);
-    return () => clearTimeout(timeout);
+    const timer = setTimeout(() => useLab.getState().notify(''), 7000);
+    return () => clearTimeout(timer);
   }, [notice]);
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement;
-      if (target.closest('input,textarea,select,[contenteditable]')) return;
+      if (
+        (event.target as HTMLElement).closest(
+          'input,textarea,select,[contenteditable], [role="dialog"]',
+        )
+      )
+        return;
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
         event.preventDefault();
         if (event.shiftKey) useLab.getState().redo();
         else useLab.getState().undo();
       }
+      if (
+        (event.metaKey || event.ctrlKey) &&
+        event.key.toLowerCase() === 'd' &&
+        (event.target as HTMLElement).closest('.graph-section')
+      ) {
+        event.preventDefault();
+        useLab.getState().duplicateSelection();
+      }
       if (event.key === '/') {
         event.preventDefault();
         setPanel('tools');
-        document.querySelector<HTMLInputElement>('[aria-label="Find an operation"]')?.focus();
+        requestAnimationFrame(() =>
+          document.querySelector<HTMLInputElement>('[aria-label="Find an operation"]')?.focus(),
+        );
       }
       if (event.key === 'Escape') setPanel('workspace');
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, []);
-  const cloudId = cloudProject?.id;
-  const onAutosave = useEffectEvent(() => {
-    void saveCloud(false, true);
-  });
-  useEffect(() => {
-    if (!cloudId || !user || conflict || cloudBusy) return;
-    if (
-      JSON.stringify(doc) === lastCloudSnapshot.current &&
-      includeImages === activeProject.current?.syncImages
-    )
-      return;
-    const timer = setTimeout(() => {
-      if (saving.current) return;
-      onAutosave();
-    }, 1600);
-    return () => clearTimeout(timer); /* cloud revision changes must not schedule another save */
-  }, [doc, includeImages, user, conflict, cloudBusy, cloudId]);
-  useEffect(() => {
-    const handler = (event: Event) => {
-      reconnectNode.current = (event as CustomEvent<string>).detail;
-      document.getElementById('reconnect-input')?.click();
-    };
-    window.addEventListener('roveran-reconnect', handler);
-    return () => window.removeEventListener('roveran-reconnect', handler);
-  }, []);
-  useEffect(() => {
-    const handler = (event: Event) =>
-      useLab.getState().notify((event as CustomEvent<string>).detail);
-    window.addEventListener('roveran-storage-warning', handler);
-    return () => window.removeEventListener('roveran-storage-warning', handler);
-  }, []);
-  const chooseDocument = async (document: PipelineDocument, current?: CloudProject | null) => {
-    current =
-      current === undefined
-        ? (((await getCloudBinding(document.id)) as CloudProject | undefined) ?? null)
-        : current;
-    lastCloudSnapshot.current = current ? JSON.stringify(current.document) : '';
-    activeProject.current = current;
-    setCloudProject(current);
-    setIncludeImages(current?.syncImages ?? false);
-    setConflict(false);
-    setCloudError('');
-    useLab.getState().replace(document);
+  const chooseDocument = async (
+    document: PipelineDocument,
+    assets?: { id: string; blob: Blob }[],
+  ) => {
+    const token = ++navigation.current;
+    await flushLocal();
+    if (token !== navigation.current) return false;
+    let persisted = false;
+    if (assets)
+      try {
+        await saveLocal(document, assets);
+        persisted = true;
+      } catch {
+        /* The complete import remains available in memory for a backup. */
+      }
+    if (token !== navigation.current) return false;
+    useLab.getState().replace(parseDocument(document));
+    setSaveStatus(
+      assets
+        ? persisted
+          ? 'saved'
+          : getStorageState() === 'temporary'
+            ? 'temporary'
+            : 'failed'
+        : 'saving',
+    );
     setDialog(null);
     setPanel('workspace');
+    return true;
   };
-  async function saveCloud(copy = false, automatic = false) {
-    if (!user) {
-      setDialog('cloud');
-      return;
-    }
-    if (saving.current) return;
-    saving.current = true;
-    setCloudBusy(true);
-    setCloudError('');
-    try {
-      await resolveAssets(useLab.getState().document);
-      const original = useLab.getState().document;
-      const document = copy
-        ? { ...original, id: crypto.randomUUID(), name: `${original.name} copy` }
-        : original;
-      const saved = await cloud.save(document, copy ? null : activeProject.current, includeImages);
-      activeProject.current = saved;
-      lastCloudSnapshot.current = JSON.stringify(document);
-      await putCloudBinding(document.id, saved);
-      setCloudProject(saved);
-      setConflict(false);
-      await cloud.syncImages(saved);
-      if (copy) useLab.getState().replace(document);
-      if (!automatic) useLab.getState().notify('Project saved to your cloud library.');
-    } catch (error) {
-      setCloudError((error as Error).message);
-      if (error instanceof ConflictError) {
-        setConflict(true);
-        setDialog('cloud');
-      }
-    } finally {
-      saving.current = false;
-      setCloudBusy(false);
-    }
-  }
-  async function signOut() {
-    try {
-      const result = await authClient.signOut();
-      if (result.error) throw new Error(result.error.message ?? 'Sign out failed.');
-      setUser(null);
-      setCloudProject(null);
-      activeProject.current = null;
-    } catch (error) {
-      setCloudError((error as Error).message);
-    }
-  }
-  async function signIn(provider: 'google' | 'github') {
-    setCloudError('');
-    try {
-      const result = await authClient.signIn.social({
-        provider,
-        callbackURL: window.location.origin,
-      });
-      if (result.error) setCloudError(result.error.message ?? 'Sign in failed.');
-    } catch (error) {
-      setCloudError((error as Error).message);
-    }
-  }
   async function openProjects() {
-    await saveLocal(useLab.getState().document).catch(() => {});
+    await flushLocal();
     setLocalProjects(await listLocal());
     setDialog('projects');
-    if (user)
-      try {
-        setCloudProjects(await cloud.list());
-      } catch (error) {
-        useLab.getState().notify((error as Error).message);
-      }
+  }
+  async function removeProject(id: string) {
+    try {
+      await flushLocal();
+      await deleteLocal(id);
+      if (useLab.getState().document.id === id) useLab.getState().replace(emptyDocument());
+      const state = useLab.getState();
+      await collectUnusedAssets([state.document, ...state.past, ...state.future]);
+      setLocalProjects(await listLocal());
+    } catch (error) {
+      useLab.getState().notify((error as Error).message);
+    }
+  }
+  async function duplicateProject(id: string) {
+    const original = await readLocal(id);
+    if (!original) return;
+    const copy = independentDocument(original);
+    copy.name = `${copy.name.slice(0, 94)} copy`;
+    await chooseDocument(copy);
+  }
+  async function renameProject(id: string, name: string) {
+    const original = await readLocal(id);
+    if (!original) return;
+    const renamed = { ...original, name: name.trim().slice(0, 100) || 'Untitled experiment' };
+    if (id === useLab.getState().document.id) useLab.getState().edit(() => renamed);
+    await saveLocal(renamed);
+    setLocalProjects(await listLocal());
   }
   async function addImages(files: FileList | null, reconnectId?: string | null) {
     if (!files) return;
-    for (const file of files) {
+    const projectId = useLab.getState().document.id;
+    for (const file of Array.from(files)) {
       try {
+        const size = await validateImage(file);
+        if (useLab.getState().document.id !== projectId)
+          throw new Error('Image import stopped because the active experiment changed.');
+        const current = useLab.getState().document;
+        const existing = reconnectId ? current.nodes.find((n) => n.id === reconnectId) : undefined;
         if (
-          !reconnectId &&
-          (useLab.getState().document.sources.length >= 20 ||
-            useLab.getState().document.nodes.length >= 100)
+          (!existing && current.nodes.length >= 100) ||
+          (current.sources.length >= 20 &&
+            (!existing ||
+              current.nodes.some((n) => n.id !== existing.id && n.sourceId === existing.sourceId)))
         )
           throw new Error('This experiment supports up to 20 images and 100 nodes.');
-        if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type))
-          throw new Error('Choose a PNG, JPEG, or WebP image.');
-        if (file.size > MAX_IMAGE_BYTES) throw new Error('Choose an image smaller than 20 MiB.');
-        const bitmap = await createImageBitmap(file);
-        const { width, height } = bitmap;
-        bitmap.close();
-        if (width * height > MAX_IMAGE_PIXELS || width > 16384 || height > 16384)
-          throw new Error('Choose an image of at most 16 megapixels and 16,384 pixels per edge.');
-        const existing = reconnectId
-          ? useLab.getState().document.nodes.find((n) => n.id === reconnectId)
-          : undefined;
-        const id = existing?.sourceId ?? crypto.randomUUID();
+        const id = crypto.randomUUID();
         await putAsset(id, file);
+        if (useLab.getState().document.id !== projectId) continue;
+        const source = {
+          id,
+          name: file.name,
+          mime: file.type as 'image/png' | 'image/jpeg' | 'image/webp',
+          ...size,
+        };
         if (existing) {
+          useLab.getState().edit((doc) => {
+            const nodes = doc.nodes.map((n) => (n.id === existing.id ? { ...n, sourceId: id } : n));
+            const used = new Set(nodes.map((n) => n.sourceId));
+            return {
+              ...doc,
+              nodes,
+              sources: [...doc.sources.filter((s) => used.has(s.id)), source],
+            };
+          });
+        } else {
+          const node = {
+            ...newNode('source', 0, current.sources.length * 210),
+            sourceId: id,
+            label: file.name.slice(0, 100),
+          };
           useLab.getState().edit((doc) => ({
             ...doc,
-            sources: doc.sources.map((s) =>
-              s.id === id
-                ? {
-                    id,
-                    name: file.name,
-                    mime: file.type as 'image/png' | 'image/jpeg' | 'image/webp',
-                    width,
-                    height,
-                  }
-                : s,
-            ),
+            sources: [...doc.sources, source],
+            nodes: [...doc.nodes, node],
+            preview: { ...doc.preview, a: doc.preview.a ?? node.id, b: node.id },
           }));
-          continue;
+          useLab.getState().select(node.id);
         }
-        const node = {
-          ...newNode('source', 0, useLab.getState().document.sources.length * 210),
-          sourceId: id,
-          label: file.name.slice(0, 100),
-        };
-        useLab.getState().edit((doc) => ({
-          ...doc,
-          sources: [
-            ...doc.sources,
-            {
-              id,
-              name: file.name,
-              mime: file.type as 'image/png' | 'image/jpeg' | 'image/webp',
-              width,
-              height,
-            },
-          ],
-          nodes: [...doc.nodes, node],
-          preview: { ...doc.preview, a: doc.preview.a ?? node.id, b: node.id },
-        }));
-        useLab.getState().select(node.id);
       } catch (error) {
         useLab.getState().notify((error as Error).message);
       }
@@ -318,14 +266,30 @@ export function useWorkspaceController() {
   async function importJson(file: File | undefined) {
     if (!file) return;
     try {
-      if (file.size > 2 * 1024 * 1024) throw new Error('Project JSON must be smaller than 2 MiB.');
-      const document = parseDocument(JSON.parse(await file.text()));
-      await chooseDocument(document);
-      useLab
-        .getState()
-        .notify('Project imported. Reconnect any missing source images in the Inspector.');
+      const signature = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+      if (/\.zip$/i.test(file.name) || (signature[0] === 0x50 && signature[1] === 0x4b)) {
+        const imported = await readBackup(file);
+        if (!(await chooseDocument(imported.document, imported.assets))) return;
+        window.dispatchEvent(new Event('roveran-assets'));
+        useLab.getState().notify('Portable experiment imported with its original images.');
+      } else {
+        if (file.size > 2 * 1024 * 1024)
+          throw new Error('Project JSON must be smaller than 2 MiB.');
+        await chooseDocument(independentDocument(parseDocument(JSON.parse(await file.text()))));
+        useLab
+          .getState()
+          .notify('Graph imported. Reconnect any missing original images in the Inspector.');
+      }
     } catch (error) {
       useLab.getState().notify(`Import failed: ${(error as Error).message}`);
+    }
+  }
+  async function backup() {
+    try {
+      const document = useLab.getState().document;
+      download(`${document.name}.roveran.zip`, await createBackup(document));
+    } catch (error) {
+      useLab.getState().notify((error as Error).message);
     }
   }
   function resizePanel(
@@ -333,8 +297,8 @@ export function useWorkspaceController() {
     side: 'left' | 'right' | 'vertical',
   ) {
     event.preventDefault();
-    const el = workspace.current!;
-    const bounds = el.getBoundingClientRect();
+    const el = workspace.current!,
+      bounds = el.getBoundingClientRect();
     event.currentTarget.setPointerCapture(event.pointerId);
     const move = (move: PointerEvent) => {
       if (side === 'left')
@@ -356,17 +320,18 @@ export function useWorkspaceController() {
     const stop = () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', stop);
+      window.removeEventListener('pointercancel', stop);
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', stop, { once: true });
+    window.addEventListener('pointercancel', stop, { once: true });
   }
-
   return {
     doc,
     notice,
     past,
     future,
-    saved,
+    saveStatus,
     panel,
     setPanel,
     dialog,
@@ -375,32 +340,18 @@ export function useWorkspaceController() {
     setExportTab,
     localProjects,
     setLocalProjects,
-    cloudProjects,
-    setCloudProjects,
-    cloudProject,
-    setCloudProject,
-    includeImages,
-    setIncludeImages,
-    cloudBusy,
-    cloudError,
-    setCloudError,
-    conflict,
-    user,
-    setUser,
-    providers,
-    cloudAvailable,
     workspace,
-    activeProject,
     reconnectNode,
-    saving,
     chooseDocument,
-    signIn,
-    signOut,
-    saveCloud,
     openProjects,
+    removeProject,
+    duplicateProject,
+    renameProject,
     addImages,
     importJson,
     resizePanel,
+    flushLocal,
+    backup,
   };
 }
 export type WorkspaceController = ReturnType<typeof useWorkspaceController>;

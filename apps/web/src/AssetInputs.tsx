@@ -30,7 +30,7 @@ export function AssetInputs({ controller }: { controller: WorkspaceController })
       <input
         id="json-input"
         type="file"
-        accept="application/json,.json"
+        accept="application/json,.json,.zip,application/zip"
         hidden
         onChange={(e) => {
           void importJson(e.target.files?.[0]);

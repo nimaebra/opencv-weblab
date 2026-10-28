@@ -1,10 +1,32 @@
+import { useOffline } from './offline';
 import { RefreshCw, X } from 'lucide-react';
 import { Button } from '@roveran/ui';
 import { useLab } from './store';
 import { useRuntime, restartRuntime } from './runtime';
 import type { WorkspaceController } from './useWorkspaceController';
+function runtimeLabel(status: string, message: string) {
+  switch (status) {
+    case 'error':
+      return message;
+    case 'loading':
+      return 'Loading OpenCV 4.13.0…';
+    case 'processing':
+      return 'Updating preview…';
+    case 'exporting':
+      return 'Rendering full-resolution PNG…';
+    default:
+      return 'OpenCV 4.13.0 · WebAssembly';
+  }
+}
+const offlineLabels = {
+  ready: 'Ready offline',
+  preparing: 'Preparing offline access…',
+  unavailable: 'Offline cache unavailable',
+  development: 'Local development',
+};
 export function StatusBar({ controller }: { controller: WorkspaceController }) {
   const { notice } = controller;
+  const offline = useOffline((s) => s.status);
   const status = useRuntime((s) => s.status),
     message = useRuntime((s) => s.message),
     stats = useRuntime((s) => s.stats);
@@ -14,15 +36,7 @@ export function StatusBar({ controller }: { controller: WorkspaceController }) {
         <div className="row">
           <span className={`status-dot ${status}`} />
           <span role="status" aria-live="polite">
-            {status === 'error'
-              ? message
-              : status === 'loading'
-                ? 'Loading OpenCV 4.13.0…'
-                : status === 'processing'
-                  ? 'Updating preview…'
-                  : status === 'exporting'
-                    ? 'Rendering full-resolution PNG…'
-                    : 'OpenCV 4.13.0 · WebAssembly'}
+            {runtimeLabel(status, message)}
           </span>
           {status === 'error' && (
             <Button icon={<RefreshCw size={12} />} onClick={restartRuntime}>
@@ -41,7 +55,8 @@ export function StatusBar({ controller }: { controller: WorkspaceController }) {
           )}
           <span className="privacy-dot" />
           <span>Processing on your device</span>
-          <span className="footer-version">v0.1</span>
+          <span>{offlineLabels[offline]}</span>
+          <span className="footer-version">v0.2</span>
         </div>
       </footer>
       {notice && (

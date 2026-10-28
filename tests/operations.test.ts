@@ -38,20 +38,23 @@ describe('real OpenCV WebAssembly operations', () => {
       }
     },
   );
-  it.each(['brightness', 'gamma', 'hue', 'invert', 'bilateral'])('preserves alpha for %s', (id) => {
-    const source = fixture();
-    const node = newNode(id);
-    if (id === 'brightness') node.parameters.brightness = 30;
-    if (id === 'gamma') node.parameters.gamma = 0.5;
-    if (id === 'hue') node.parameters.hue = 40;
-    const output = execute(cv, node, [source]);
-    try {
-      for (let i = 3; i < source.data.length; i += 4) expect(output.data[i]).toBe(source.data[i]);
-    } finally {
-      source.delete();
-      output.delete();
-    }
-  });
+  it.each(['brightness', 'gamma', 'hue', 'invert', 'bilateral', 'sharpen', 'absdiff', 'xor'])(
+    'preserves alpha for %s',
+    (id) => {
+      const source = fixture();
+      const node = newNode(id);
+      if (id === 'brightness') node.parameters.brightness = 30;
+      if (id === 'gamma') node.parameters.gamma = 0.5;
+      if (id === 'hue') node.parameters.hue = 40;
+      const output = execute(cv, node, [source, source]);
+      try {
+        for (let i = 3; i < source.data.length; i += 4) expect(output.data[i]).toBe(source.data[i]);
+      } finally {
+        source.delete();
+        output.delete();
+      }
+    },
+  );
   it('bypasses without mutating or aliasing the source', () => {
     const source = fixture();
     const node = newNode('invert');

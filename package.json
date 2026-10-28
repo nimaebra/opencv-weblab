@@ -11,15 +11,13 @@
     "typecheck": "turbo run typecheck",
     "lint": "eslint .",
     "test": "vitest run",
-    "test:e2e": "playwright test",
-    "test:parity": "pnpm --filter @roveran/api exec node --import tsx ../../scripts/export-parity.ts",
+    "test:e2e": "pnpm build && playwright test",
+    "test:parity": "node --import tsx scripts/export-parity.ts",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "runtime:fetch": "node scripts/fetch-opencv.mjs",
-    "db:migrate": "pnpm --filter @roveran/api db:migrate",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test:integration": "ROVERAN_INTEGRATION=1 vitest run tests/integration.test.ts",
-    "start": "node apps/api/dist/index.js"
+    "start": "pnpm --filter @roveran/web preview"
   },
   "devDependencies": {
     "turbo": "^2.5.0",
@@ -32,10 +30,13 @@
     "globals": "^16.4.0",
     "@types/node": "^24.0.0",
     "esbuild": "^0.25.0",
-    "drizzle-orm": "^0.45.2",
-    "postgres": "^3.4.0",
-    "better-auth": "1.7.14",
-    "prettier": "^3.6.0"
+    "prettier": "^3.6.0",
+    "tsx": "^4.20.0",
+    "fake-indexeddb": "^6.2.4",
+    "fflate": "^0.8.2",
+    "idb": "^8.0.3"
   },
-  "type": "module"
+  "type": "module",
+  "license": "Apache-2.0",
+  "version": "0.2.0"
 }

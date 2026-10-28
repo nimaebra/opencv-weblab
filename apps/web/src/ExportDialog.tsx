@@ -5,7 +5,7 @@ import { useRuntime, exportImage } from './runtime';
 import { download } from './persistence';
 import type { WorkspaceController } from './useWorkspaceController';
 export function ExportDialog({ controller }: { controller: WorkspaceController }) {
-  const { doc, dialog, setDialog, exportTab, setExportTab } = controller;
+  const { doc, dialog, setDialog, exportTab, setExportTab, backup } = controller;
   const status = useRuntime((s) => s.status);
   let exported = '',
     exportError = false;
@@ -26,6 +26,9 @@ export function ExportDialog({ controller }: { controller: WorkspaceController }
         description="Keep the result, or turn your pipeline into code you can run yourself."
       >
         <div className="export-options">
+          <Button onClick={() => void backup()} icon={<Download size={16} />}>
+            Portable backup
+          </Button>
           <Button
             variant="primary"
             icon={<Download size={16} />}
@@ -38,7 +41,7 @@ export function ExportDialog({ controller }: { controller: WorkspaceController }
             icon={<Upload size={16} />}
             onClick={() => document.getElementById('json-input')?.click()}
           >
-            Import JSON
+            Import project
           </Button>
         </div>
         <div className="export-tabs">
@@ -63,7 +66,7 @@ export function ExportDialog({ controller }: { controller: WorkspaceController }
         <div className="dialog-footer">
           <p>
             {exportTab === 'json'
-              ? 'Source images stay separate. Reconnect them after import.'
+              ? 'Graph-only JSON keeps images separate. Use Portable backup to include originals.'
               : 'Includes source filenames, dependencies, and every operation.'}
           </p>
           <Button

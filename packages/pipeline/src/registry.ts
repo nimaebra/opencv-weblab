@@ -22,6 +22,10 @@ export type OperationDefinition = {
   accepts: 'any' | ImageMode;
   output: 'same' | ImageMode;
   parameters: Parameter[];
+  inputHelp: string;
+  outputHelp: string;
+  experiment: string;
+  documentationUrl: string;
 };
 const number = (
   key: string,
@@ -81,14 +85,39 @@ function op(
   output: OperationDefinition['output'] = 'same',
   inputs = 1,
 ): OperationDefinition {
-  return { id, version: 1, label, category, description, fn, inputs, accepts, output, parameters };
+  return {
+    id,
+    version: 1,
+    label,
+    category,
+    description,
+    fn,
+    inputs,
+    accepts,
+    output,
+    parameters,
+    inputHelp:
+      inputs === 0
+        ? 'A PNG, JPEG or still WebP image from your device.'
+        : `${inputs === 2 ? 'Two images with matching dimensions and color mode' : accepts === 'gray' ? 'An 8-bit grayscale image' : accepts === 'rgba' ? 'An RGBA color image' : 'An RGBA or grayscale image'}.`,
+    outputHelp:
+      output === 'same'
+        ? 'The input color mode is preserved.'
+        : output === 'gray'
+          ? 'An 8-bit grayscale image.'
+          : 'An 8-bit RGBA color image.',
+    experiment: parameters.length
+      ? `Change ${parameters[0]!.label.toLowerCase()} and compare this output with its input. ${parameters[0]!.description}`
+      : `Pin the input to A and this output to B, then compare. ${description}`,
+    documentationUrl: `https://docs.opencv.org/4.13.0/${id === 'equalize' ? 'd2/d74/tutorial_js_histogram_equalization.html' : id === 'canny' ? 'd7/de1/tutorial_js_canny.html' : id === 'channel' || id === 'source' || id === 'normalize' ? 'de/d06/tutorial_js_basic_ops.html' : (({ Color: 'db/d64/tutorial_js_colorspaces.html', Smoothing: 'dd/d6a/tutorial_js_filtering.html', Thresholding: 'd7/dd0/tutorial_js_thresholding.html', Morphology: 'd4/d76/tutorial_js_morphological_ops.html', Geometry: 'dd/d52/tutorial_js_geometric_transformations.html', Edges: 'da/d85/tutorial_js_gradients.html', Combining: 'dd/d4d/tutorial_js_image_arithmetics.html' } as Record<string, string>)[category] ?? 'd5/d10/tutorial_js_root.html')}`,
+  };
 }
 export const operations: OperationDefinition[] = [
   op(
     'source',
     'Image source',
     'Input',
-    'Load an image from your device. Pixels stay in this browser unless you explicitly include images in a cloud project.',
+    'Load an image from your device. Pixels and projects stay on this device. Export a portable backup to keep a separate copy.',
     'cv.matFromImageData',
     [],
     'any',
@@ -442,6 +471,125 @@ export const operations: OperationDefinition[] = [
     'same',
     2,
   ),
+  op(
+    'channel',
+    'Channel extraction',
+    'Color',
+    'Inspect red, green, blue or alpha as grayscale. Alpha measures opacity, not brightness.',
+    'cv.split',
+    [
+      choice(
+        'channel',
+        'Channel',
+        'red',
+        ['red', 'green', 'blue', 'alpha'],
+        'Choose the RGBA channel to inspect.',
+      ),
+    ],
+    'rgba',
+    'gray',
+  ),
+  op(
+    'hsv-mask',
+    'HSV range mask',
+    'Color',
+    'Select colors by hue, saturation and value. A hue minimum above its maximum wraps through red at zero. White pixels match; black pixels do not.',
+    'cv.cvtColor / cv.inRange',
+    [
+      number('hMin', 'Hue minimum', 0, 0, 179, 'OpenCV hue units: 0–179 represent 0–358 degrees.'),
+      number(
+        'hMax',
+        'Hue maximum',
+        179,
+        0,
+        179,
+        'A maximum below the minimum selects across the red boundary.',
+      ),
+      number(
+        'sMin',
+        'Saturation minimum',
+        0,
+        0,
+        255,
+        'Exclude pale or gray pixels by increasing this value.',
+      ),
+      number('sMax', 'Saturation maximum', 255, 0, 255, 'Upper bound on color intensity.'),
+      number('vMin', 'Value minimum', 0, 0, 255, 'Exclude dark pixels by increasing this value.'),
+      number('vMax', 'Value maximum', 255, 0, 255, 'Upper bound on brightness.'),
+    ],
+    'rgba',
+    'gray',
+  ),
+  op(
+    'equalize',
+    'Histogram equalization',
+    'Color',
+    'Redistribute grayscale intensities using their cumulative histogram. Low-contrast detail becomes easier to see; noise may also become stronger.',
+    'cv.equalizeHist',
+    [],
+    'gray',
+    'gray',
+  ),
+  op(
+    'normalize',
+    'Intensity normalization',
+    'Color',
+    'Stretch the darkest intensity to zero and the brightest to 255. Constant images become black.',
+    'cv.normalize',
+    [],
+    'gray',
+    'gray',
+  ),
+  op(
+    'sharpen',
+    'Sharpen',
+    'Smoothing',
+    'Emphasize local differences with a 3×3 cross kernel. Excess strength can amplify noise and clip highlights. Alpha is preserved.',
+    'cv.filter2D',
+    [
+      number(
+        'strength',
+        'Strength',
+        1,
+        0,
+        3,
+        'Zero leaves the image unchanged. One uses a center weight of 5 and neighbor weights of −1.',
+        0.1,
+      ),
+    ],
+  ),
+  op(
+    'morph-gradient',
+    'Morphological gradient',
+    'Morphology',
+    'Subtract erosion from dilation to reveal the boundaries of bright shapes.',
+    'cv.morphologyEx',
+    morphology,
+    'gray',
+    'gray',
+  ),
+  op(
+    'absdiff',
+    'Absolute difference',
+    'Combining',
+    'Show how much two matching images differ at each pixel. Identical colors become black. RGBA output keeps input A’s alpha.',
+    'cv.absdiff',
+    [],
+    'any',
+    'same',
+    2,
+  ),
+  op(
+    'xor',
+    'Bitwise XOR',
+    'Combining',
+    'Keep bits that differ between two matching images. With binary masks, white marks pixels present in only one input. RGBA output keeps input A’s alpha.',
+    'cv.bitwise_xor',
+    [],
+    'any',
+    'same',
+    2,
+  ),
 ];
 export const registry = Object.assign(
   Object.create(null),
@@ -471,6 +619,15 @@ export function parameterSchema(id: string) {
     .object(shape)
     .strict()
     .superRefine((values, ctx) => {
+      if (id === 'hsv-mask') {
+        for (const key of ['s', 'v'])
+          if (Number(values[`${key}Min`]) > Number(values[`${key}Max`]))
+            ctx.addIssue({
+              code: 'custom',
+              path: [`${key}Max`],
+              message: 'Saturation and value maximums must be at least their minimums.',
+            });
+      }
       if (id === 'canny' && Number(values.low) > Number(values.high))
         ctx.addIssue({
           code: 'custom',

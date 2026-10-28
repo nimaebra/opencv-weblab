@@ -20,9 +20,43 @@ export type WorkerRequest =
   | { type: 'sources'; sources: { id: string; blob: Blob }[] }
   | { type: 'evaluate'; revision: number; document: PipelineDocument }
   | { type: 'export'; revision: number; document: PipelineDocument; target: string }
+  | {
+      type: 'analyze';
+      revision: number;
+      requestId: number;
+      nodeId: string;
+      bitmap: ImageBitmap;
+      mode: ImageMode;
+    }
+  | {
+      type: 'sample';
+      revision: number;
+      requestId: number;
+      analysisId: number;
+      nodeId: string;
+      x: number;
+      y: number;
+    }
+  | { type: 'clear-analysis' }
   | { type: 'dispose' };
 export type WorkerResponse =
   | { type: 'ready'; version: string }
+  | {
+      type: 'analysis';
+      revision: number;
+      requestId: number;
+      nodeId: string;
+      histograms: number[][];
+    }
+  | {
+      type: 'pixel';
+      revision: number;
+      requestId: number;
+      nodeId: string;
+      x: number;
+      y: number;
+      values: number[];
+    }
   | {
       type: 'result';
       revision: number;

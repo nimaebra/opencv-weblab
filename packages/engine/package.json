@@ -1,7 +1,7 @@
 {
   "name": "@roveran/engine",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.2.0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
@@ -13,5 +13,6 @@
   "dependencies": {
     "@roveran/pipeline": "workspace:*"
   },
-  "devDependencies": {}
+  "devDependencies": {},
+  "license": "Apache-2.0"
 }

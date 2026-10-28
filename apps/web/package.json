@@ -1,7 +1,7 @@
 {
   "name": "@roveran/web",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "node ../../scripts/dev-web.mjs",
@@ -18,10 +18,12 @@
     "@xyflow/react": "^12.9.0",
     "zustand": "^5.0.0",
     "idb": "^8.0.3",
-    "better-auth": "1.7.14",
     "lucide-react": "^0.468.0",
     "@fontsource-variable/dm-sans": "^5.2.0",
-    "@fontsource/ibm-plex-mono": "^5.2.0"
+    "@fontsource/ibm-plex-mono": "^5.2.0",
+    "fflate": "^0.8.2",
+    "@dagrejs/dagre": "^1.1.8",
+    "workbox-window": "^7.4.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.1.0",
@@ -29,6 +31,8 @@
     "tailwindcss": "^4.1.0",
     "@tailwindcss/vite": "^4.1.0",
     "@types/react": "^19.2.0",
-    "@types/react-dom": "^19.2.0"
-  }
+    "@types/react-dom": "^19.2.0",
+    "vite-plugin-pwa": "^1.2.0"
+  },
+  "license": "Apache-2.0"
 }

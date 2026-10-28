@@ -10,7 +10,7 @@ export const Library = memo(function Library() {
     <aside className="library panel" aria-label="Operation library">
       <div className="panel-heading">
         <h2>Tools</h2>
-        <span className="count">25</span>
+        <span className="count">{operations.filter((o) => o.id !== 'source').length}</span>
       </div>
       <label className="search">
         <Search size={15} />
@@ -41,7 +41,9 @@ export const Library = memo(function Library() {
           const items = operations.filter(
             (o) =>
               o.category === category &&
-              `${o.label} ${o.description}`.toLowerCase().includes(search.toLowerCase()),
+              `${o.label} ${o.fn} ${o.category} ${o.description}`
+                .toLowerCase()
+                .includes(search.toLowerCase()),
           );
           if (!items.length) return null;
           return (
@@ -78,7 +80,9 @@ export const Library = memo(function Library() {
         {!operations.some(
           (o) =>
             o.id !== 'source' &&
-            `${o.label} ${o.description}`.toLowerCase().includes(search.toLowerCase()),
+            `${o.label} ${o.fn} ${o.category} ${o.description}`
+              .toLowerCase()
+              .includes(search.toLowerCase()),
         ) && <p className="empty-small">No matching tools. Try “blur” or “threshold”.</p>}
       </div>
       <a

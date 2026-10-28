@@ -57,11 +57,23 @@ try {
     }
     if (op.id === 'gamma') node.parameters.gamma = 0.7;
     if (op.id === 'rotate') node.parameters.angle = 25;
+    if (op.id === 'channel') node.parameters.channel = 'alpha';
+    if (op.id === 'hsv-mask')
+      node.parameters = { hMin: 170, hMax: 25, sMin: 50, sMax: 255, vMin: 30, vMax: 230 };
+    if (op.id === 'sharpen') node.parameters.strength = 0.7;
     doc.nodes.push(node);
     doc = connect(doc, parent.id, node.id);
-    if (op.inputs === 2) doc = connect(doc, parent.id, node.id, 1);
+    let second = input;
+    if (op.inputs === 2) {
+      const inverse = newNode('invert');
+      doc.nodes.push(inverse);
+      doc = connect(doc, parent.id, inverse.id);
+      doc = connect(doc, inverse.id, node.id, 1);
+      second = execute(cv, inverse, [input]);
+      allocated.push(second);
+    }
     doc.preview.b = node.id;
-    const output = execute(cv, node, [input, input]);
+    const output = execute(cv, node, [input, second]);
     allocated.push(output);
     await writeFile(join(folder, `${op.id}.py`), generatePython(doc));
     testCases.push({

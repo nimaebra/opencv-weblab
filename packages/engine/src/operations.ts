@@ -49,6 +49,76 @@ export function execute(cv: CV, node: PipelineNode, inputs: CV[], scale = 1): CV
         if (channels === 1) src.copyTo(dst);
         else cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
         break;
+      case 'channel': {
+        const vector = new cv.MatVector();
+        try {
+          cv.split(src, vector);
+          const channel = vector.get(['red', 'green', 'blue', 'alpha'].indexOf(String(p.channel)));
+          try {
+            channel.copyTo(dst);
+          } finally {
+            channel.delete();
+          }
+        } finally {
+          vector.delete();
+        }
+        break;
+      }
+      case 'hsv-mask': {
+        const rgb = mat(),
+          hsv = mat();
+        cv.cvtColor(src, rgb, cv.COLOR_RGBA2RGB);
+        cv.cvtColor(rgb, hsv, cv.COLOR_RGB2HSV);
+        const range = (min: number, max: number, out: CV) => {
+          const lo = new cv.Mat(
+            hsv.rows,
+            hsv.cols,
+            hsv.type(),
+            new cv.Scalar(min, n('sMin'), n('vMin'), 0),
+          );
+          const hi = new cv.Mat(
+            hsv.rows,
+            hsv.cols,
+            hsv.type(),
+            new cv.Scalar(max, n('sMax'), n('vMax'), 0),
+          );
+          try {
+            cv.inRange(hsv, lo, hi, out);
+          } finally {
+            lo.delete();
+            hi.delete();
+          }
+        };
+        if (n('hMin') <= n('hMax')) range(n('hMin'), n('hMax'), dst);
+        else {
+          const other = mat();
+          range(n('hMin'), 179, dst);
+          range(0, n('hMax'), other);
+          cv.bitwise_or(dst, other, dst);
+        }
+        break;
+      }
+      case 'equalize':
+        cv.equalizeHist(src, dst);
+        break;
+      case 'normalize':
+        cv.normalize(src, dst, 0, 255, cv.NORM_MINMAX);
+        break;
+      case 'sharpen': {
+        const v = n('strength');
+        const kernel = cv.matFromArray(3, 3, cv.CV_32F, [0, -v, 0, -v, 1 + 4 * v, -v, 0, -v, 0]);
+        temp.push(kernel);
+        colorOnly((rgb, out) =>
+          cv.filter2D(rgb, out, -1, kernel, new cv.Point(-1, -1), 0, cv.BORDER_DEFAULT),
+        );
+        break;
+      }
+      case 'absdiff':
+      case 'xor':
+        if (node.operation === 'absdiff') cv.absdiff(src, b, dst);
+        else cv.bitwise_xor(src, b, dst);
+        if (channels === 4) for (let i = 3; i < dst.data.length; i += 4) dst.data[i] = src.data[i];
+        break;
       case 'brightness':
         colorOnly((rgb, out) => rgb.convertTo(out, -1, n('contrast'), n('brightness')));
         break;
@@ -165,7 +235,8 @@ export function execute(cv: CV, node: PipelineNode, inputs: CV[], scale = 1): CV
       case 'erode':
       case 'dilate':
       case 'open':
-      case 'close': {
+      case 'close':
+      case 'morph-gradient': {
         const kernel = cv.getStructuringElement(
           (
             { ellipse: cv.MORPH_ELLIPSE, rect: cv.MORPH_RECT, cross: cv.MORPH_CROSS } as Record<
@@ -191,7 +262,11 @@ export function execute(cv: CV, node: PipelineNode, inputs: CV[], scale = 1): CV
           cv.morphologyEx(
             src,
             dst,
-            node.operation === 'open' ? cv.MORPH_OPEN : cv.MORPH_CLOSE,
+            node.operation === 'morph-gradient'
+              ? cv.MORPH_GRADIENT
+              : node.operation === 'open'
+                ? cv.MORPH_OPEN
+                : cv.MORPH_CLOSE,
             kernel,
             new cv.Point(-1, -1),
             n('iterations'),

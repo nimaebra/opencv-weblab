@@ -38,6 +38,16 @@ export function generatePython(doc: PipelineDocument): string {
     '    if a.shape != b.shape: raise ValueError("Merge inputs must have identical dimensions and color mode")',
     '    return fn(a, b)',
     '',
+    'def hsv_mask(image, h_min, h_max, s_min, s_max, v_min, v_max):',
+    '    hsv = cv.cvtColor(cv.cvtColor(image, cv.COLOR_RGBA2RGB), cv.COLOR_RGB2HSV)',
+    '    def mask(lo, hi): return cv.inRange(hsv, (lo, s_min, v_min), (hi, s_max, v_max))',
+    '    return mask(h_min, h_max) if h_min <= h_max else cv.bitwise_or(mask(h_min, 179), mask(0, h_max))',
+    '',
+    'def difference(a, b, fn):',
+    '    output = merge_images(a, b, fn)',
+    '    if output.ndim == 3: output[:, :, 3] = a[:, :, 3]',
+    '    return output',
+    '',
     'def save_image(path, image):',
     '    if image.ndim == 3: image = cv.cvtColor(image, cv.COLOR_RGBA2BGRA)',
     '    if not cv.imwrite(str(path), image): raise ValueError(f"Cannot save {path}")',
@@ -65,6 +75,29 @@ export function generatePython(doc: PipelineDocument): string {
       switch (n.operation) {
         case 'grayscale':
           expr = `cv.cvtColor(${a}, cv.COLOR_RGBA2GRAY) if ${a}.ndim == 3 else ${a}.copy()`;
+          break;
+        case 'channel':
+          expr = `cv.split(${a})[${['red', 'green', 'blue', 'alpha'].indexOf(String(p.channel))}]`;
+          break;
+        case 'hsv-mask':
+          expr = `hsv_mask(${a}, ${p.hMin}, ${p.hMax}, ${p.sMin}, ${p.sMax}, ${p.vMin}, ${p.vMax})`;
+          break;
+        case 'equalize':
+          expr = `cv.equalizeHist(${a})`;
+          break;
+        case 'normalize':
+          expr = `cv.normalize(${a}, None, 0, 255, cv.NORM_MINMAX)`;
+          break;
+        case 'sharpen': {
+          const v = Number(p.strength);
+          expr = `color_only(${a}, lambda rgb: cv.filter2D(rgb, -1, np.array([[0, ${-v}, 0], [${-v}, ${1 + 4 * v}, ${-v}], [0, ${-v}, 0]], dtype=np.float32), borderType=cv.BORDER_DEFAULT))`;
+          break;
+        }
+        case 'absdiff':
+          expr = `difference(${a}, ${b}, cv.absdiff)`;
+          break;
+        case 'xor':
+          expr = `difference(${a}, ${b}, cv.bitwise_xor)`;
           break;
         case 'brightness':
           expr = `color_only(${a}, lambda rgb: np.clip(np.rint(rgb.astype(np.float64) * ${p.contrast} + ${p.brightness}), 0, 255).astype(np.uint8))`;
@@ -111,12 +144,13 @@ export function generatePython(doc: PipelineDocument): string {
         case 'erode':
         case 'dilate':
         case 'open':
-        case 'close': {
+        case 'close':
+        case 'morph-gradient': {
           const k = `cv.getStructuringElement(cv.MORPH_${String(p.shape).toUpperCase()}, (${p.kernel}, ${p.kernel}))`;
           expr =
             n.operation === 'erode' || n.operation === 'dilate'
               ? `cv.${n.operation}(${a}, ${k}, iterations=${p.iterations})`
-              : `cv.morphologyEx(${a}, cv.MORPH_${n.operation.toUpperCase()}, ${k}, iterations=${p.iterations})`;
+              : `cv.morphologyEx(${a}, cv.MORPH_${n.operation === 'morph-gradient' ? 'GRADIENT' : n.operation.toUpperCase()}, ${k}, iterations=${p.iterations})`;
           break;
         }
         case 'resize':
@@ -143,4 +177,13 @@ export function generatePython(doc: PipelineDocument): string {
   const output = doc.preview.b ?? ordered.at(-1)?.id;
   if (output && names.has(output)) lines.push(`save_image("output.png", ${names.get(output)})`);
   return lines.join('\n') + '\n';
+}
+
+export function generateNodePython(doc: PipelineDocument, nodeId: string): string {
+  const node = doc.nodes.find((n) => n.id === nodeId);
+  if (!node) return '';
+  const source = generatePython(doc);
+  const index = topologicalOrder(doc).findIndex((n) => n.id === nodeId);
+  const expression = source.split('\n').find((line) => line.startsWith(`image_${index} = `));
+  return `# ${node.label.replace(/[\r\n]/g, ' ')} — ${registry[node.operation]!.fn}\n${expression ?? ''}`;
 }

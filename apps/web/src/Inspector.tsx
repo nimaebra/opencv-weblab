@@ -1,7 +1,7 @@
 import { OperationControls } from './OperationControls';
 import { memo, useState } from 'react';
 import { Copy, Trash2, Pin, BookOpen, ArrowRight, Link, ArrowUpRight, Plus } from 'lucide-react';
-import { registry, connect } from '@roveran/pipeline';
+import { registry, connect, defaults, generateNodePython } from '@roveran/pipeline';
 import { Button } from '@roveran/ui';
 import { useLab, insertGrayscale } from './store';
 import { useRuntime } from './runtime';
@@ -11,7 +11,9 @@ export const Inspector = memo(function Inspector() {
   const node = doc.nodes.find((n) => n.id === selected);
   const error = useRuntime((s) => (selected ? s.errors[selected] : undefined));
   const result = useRuntime((s) => (selected ? s.nodes[selected] : undefined));
-  const [from, setFrom] = useState('');
+  const [fromState, setFromState] = useState({ nodeId: '', value: '' });
+  const from = fromState.nodeId === selected ? fromState.value : '';
+  const setFrom = (value: string) => setFromState({ nodeId: selected ?? '', value });
   const [input, setInput] = useState(0);
   if (!node)
     return (
@@ -50,6 +52,13 @@ export const Inspector = memo(function Inspector() {
       </aside>
     );
   const def = registry[node.operation]!;
+  const incoming = doc.edges.filter((e) => e.target === node.id);
+  let python = '';
+  try {
+    python = generateNodePython(doc, node.id);
+  } catch {
+    python = '# Connect valid inputs to see executable Python for this step.';
+  }
   return (
     <aside className="inspector panel" aria-label="Node inspector">
       <div className="panel-heading">
@@ -79,6 +88,17 @@ export const Inspector = memo(function Inspector() {
           </div>
           <code>{def.fn}</code>
         </div>
+        <label className="field">
+          Node name
+          <input
+            aria-label="Node name"
+            maxLength={100}
+            value={node.label}
+            onChange={(e) =>
+              useLab.getState().update(node.id, { label: e.target.value }, `label:${node.id}`)
+            }
+          />
+        </label>
         {node.operation !== 'source' && (
           <label className="toggle-row">
             <span>Enable operation</span>
@@ -101,12 +121,45 @@ export const Inspector = memo(function Inspector() {
           </div>
         )}
         <OperationControls node={node} />
+        {def.parameters.length > 0 && (
+          <Button
+            onClick={() =>
+              useLab.getState().update(node.id, { parameters: defaults(node.operation) })
+            }
+          >
+            Reset parameters
+          </Button>
+        )}
         <section className="explanation">
           <h4>
             <BookOpen size={15} />
             What’s happening?
           </h4>
           <p>{def.description}</p>
+          <p>
+            <strong>Input:</strong> {def.inputHelp}
+            <br />
+            <strong>Output:</strong> {def.outputHelp}
+          </p>
+          <p>{def.experiment}</p>
+          <a
+            className="documentation-link"
+            href={def.documentationUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Read the OpenCV explanation <ArrowUpRight size={12} />
+          </a>
+          <details className="node-python">
+            <summary>Python for this step</summary>
+            <pre>
+              <code>{python}</code>
+            </pre>
+            <p>
+              Variables refer to upstream steps. Export the full Python script for its helpers and
+              image loading.
+            </p>
+          </details>
           {def.accepts === 'gray' && (
             <span className="requirement">Requires an 8-bit grayscale image</span>
           )}
@@ -152,6 +205,18 @@ export const Inspector = memo(function Inspector() {
             >
               Connect
             </Button>
+            {incoming.map((edge) => (
+              <Button
+                key={edge.id}
+                onClick={() =>
+                  useLab
+                    .getState()
+                    .edit((d) => ({ ...d, edges: d.edges.filter((e) => e.id !== edge.id) }))
+                }
+              >
+                Disconnect input {edge.input === 0 ? 'A' : 'B'}
+              </Button>
+            ))}
           </section>
         )}
         <section className="output-details">
@@ -184,11 +249,12 @@ export const Inspector = memo(function Inspector() {
           </Button>
           <Button
             icon={<Pin size={14} />}
-            onClick={() =>
+            onClick={() => {
+              useLab.getState().setFollowSelection(false);
               useLab
                 .getState()
-                .edit((doc) => ({ ...doc, preview: { ...doc.preview, b: node.id } }), false)
-            }
+                .edit((doc) => ({ ...doc, preview: { ...doc.preview, b: node.id } }), false);
+            }}
           >
             Pin to B
           </Button>

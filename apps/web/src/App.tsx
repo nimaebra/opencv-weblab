@@ -5,7 +5,7 @@ import { StatusBar } from './StatusBar';
 import { AssetInputs } from './AssetInputs';
 import { ExportDialog } from './ExportDialog';
 import { ProjectsDialog } from './ProjectsDialog';
-import { CloudDialog } from './CloudDialog';
+import { OfflineNotice } from './OfflineNotice';
 export default function App() {
   const controller = useWorkspaceController();
   return (
@@ -16,7 +16,7 @@ export default function App() {
       <AssetInputs controller={controller} />
       <ExportDialog controller={controller} />
       <ProjectsDialog controller={controller} />
-      <CloudDialog controller={controller} />
+      <OfflineNotice controller={controller} />
     </>
   );
 }

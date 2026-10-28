@@ -1,25 +1,10 @@
 name: Validate Roveran
 on: [push, pull_request]
+permissions:
+  contents: read
 jobs:
   checks:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_DB: roveran
-          POSTGRES_USER: roveran
-          POSTGRES_PASSWORD: roveran
-        ports: ['54329:5432']
-        options: >-
-          --health-cmd "pg_isready -U roveran"
-          --health-interval 5s --health-timeout 3s --health-retries 10
-      storage:
-        image: rustfs/rustfs:1.0.1
-        env:
-          RUSTFS_ACCESS_KEY: roveran-local
-          RUSTFS_SECRET_KEY: roveran-local-secret
-        ports: ['9000:9000']
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -33,7 +18,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
       - run: pnpm check
-      - run: pnpm test:integration
       - run: pip install -r tests/requirements.txt
       - run: pnpm test:parity
       - run: pnpm exec playwright install --with-deps chromium firefox webkit
@@ -46,3 +30,4 @@ jobs:
             test-results/
             tests/reports/
             tests/parity-report.json
+            playwright-report/
