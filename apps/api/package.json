@@ -1,0 +1,30 @@
+{
+  "name": "@roveran/api",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=../../.env src/index.ts",
+    "build": "tsc --noEmit && node ../../scripts/build-api.mjs",
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "tsx --env-file-if-exists=../../.env src/migrate.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@roveran/pipeline": "workspace:*",
+    "fastify": "^5.6.0",
+    "@fastify/multipart": "^9.3.0",
+    "@fastify/static": "^8.3.0",
+    "@fastify/rate-limit": "^10.3.0",
+    "better-auth": "1.7.14",
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.0",
+    "@aws-sdk/client-s3": "^3.900.0",
+    "@aws-sdk/s3-request-presigner": "^3.900.0",
+    "sharp": "^0.34.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.0"
+  }
+}

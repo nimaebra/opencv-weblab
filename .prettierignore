@@ -1,0 +1,10 @@
+node_modules
+.pnpm-store
+**/dist
+.turbo
+apps/web/public/runtime
+apps/web/public/engine-worker.js*
+pnpm-lock.yaml
+playwright-report
+test-results
+.impeccable/review

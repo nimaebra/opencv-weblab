@@ -1,0 +1,34 @@
+{
+  "name": "@roveran/web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node ../../scripts/dev-web.mjs",
+    "build": "node ../../scripts/collect-notices.mjs && node ../../scripts/build-worker.mjs && tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "dependencies": {
+    "@roveran/pipeline": "workspace:*",
+    "@roveran/engine": "workspace:*",
+    "@roveran/ui": "workspace:*",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "@xyflow/react": "^12.9.0",
+    "zustand": "^5.0.0",
+    "idb": "^8.0.3",
+    "better-auth": "1.7.14",
+    "lucide-react": "^0.468.0",
+    "@fontsource-variable/dm-sans": "^5.2.0",
+    "@fontsource/ibm-plex-mono": "^5.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.1.0",
+    "vite": "^7.2.0",
+    "tailwindcss": "^4.1.0",
+    "@tailwindcss/vite": "^4.1.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0"
+  }
+}

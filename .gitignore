@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.turbo/
+.env
+.env.*.local
+playwright-report/
+test-results/
+coverage/
+.DS_Store
+
+.pnpm-store/
+apps/web/public/engine-worker.js*
+.impeccable/review/
+tests/reports/
+tests/parity-report.json
+*.tsbuildinfo
+apps/web/public/THIRD_PARTY_NOTICES.txt

@@ -1,0 +1,5 @@
+{
+  "ignore": {
+    "files": ["public/engine-worker.js", "public/runtime/**"]
+  }
+}

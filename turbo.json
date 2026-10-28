@@ -1,0 +1,29 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "tasks": {
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"],
+      "outputs": []
+    },
+    "@roveran/pipeline#build": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "@roveran/engine#build": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "@roveran/ui#build": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    }
+  }
+}
