@@ -16,8 +16,8 @@ import {
 } from '../packages/pipeline/src/index';
 import { scaledOdd } from '../packages/engine/src/operations';
 describe('operation catalog', () => {
-  it('defines all 33 processing operations with valid defaults', () => {
-    expect(operations.filter((o) => o.id !== 'source')).toHaveLength(33);
+  it('defines all 37 processing operations with valid defaults', () => {
+    expect(operations.filter((o) => o.id !== 'source')).toHaveLength(37);
     for (const op of operations) {
       expect(parameterSchema(op.id).safeParse(defaults(op.id)).success, op.id).toBe(true);
       expect(op.description.length).toBeGreaterThan(30);
@@ -111,7 +111,14 @@ describe('graph contracts', () => {
       doc.nodes.push(node);
       const parent = doc.nodes.at(-2)!;
       doc = connect(doc, parent.id, node.id);
-      if (op.inputs === 2) doc = connect(doc, parent.id, node.id, 1);
+      if (op.inputs === 2) {
+        if (op.id === 'apply-mask') {
+          const mask = newNode('grayscale');
+          doc.nodes.push(mask);
+          doc = connect(doc, parent.id, mask.id);
+          doc = connect(doc, mask.id, node.id, 1);
+        } else doc = connect(doc, parent.id, node.id, 1);
+      }
       doc.preview.b = node.id;
       expect(generatePython(doc), op.id).toContain(registry[op.id]!.fn);
     }

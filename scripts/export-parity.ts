@@ -5,13 +5,15 @@ import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { waitForOpenCv } from '../packages/engine/src/loader';
-import { execute } from '../packages/engine/src/operations';
+import { execute, executeResult } from '../packages/engine/src/operations';
+import { measurementsCsv } from '../packages/engine/src/measurements';
 import {
   operations,
   emptyDocument,
   newNode,
   connect,
   generatePython,
+  topologicalOrder,
   type PipelineDocument,
 } from '../packages/pipeline/src/index';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -39,14 +41,34 @@ try {
     let parent = source;
     const allocated: any[] = [];
     let input = rgba;
+    let sourcePixels: number[] | undefined;
+    if (['components', 'contours', 'filter-objects'].includes(op.id)) {
+      input = cv.Mat.zeros(24, 32, cv.CV_8UC4);
+      allocated.push(input);
+      for (let i = 3; i < input.data.length; i += 4) input.data[i] = 255;
+      const rectangle = (x: number, y: number, width: number, height: number, value = 255) => {
+        for (let row = y; row < y + height; row++)
+          for (let col = x; col < x + width; col++)
+            for (let channel = 0; channel < 3; channel++)
+              input.data[(row * 32 + col) * 4 + channel] = value;
+      };
+      rectangle(2, 2, 7, 7);
+      rectangle(14, 2, 9, 9);
+      rectangle(16, 4, 5, 5, 0);
+      rectangle(28, 3, 1, 1);
+      rectangle(3, 16, 2, 2);
+      rectangle(5, 18, 2, 2);
+      sourcePixels = [...input.data];
+    }
     if (op.accepts === 'gray') {
       parent = newNode('grayscale');
       doc.nodes.push(parent);
       doc = connect(doc, source.id, parent.id);
-      input = execute(cv, parent, [rgba]);
+      input = execute(cv, parent, [input]);
       allocated.push(input);
     }
     const node = newNode(op.id);
+    if (op.id === 'components') node.parameters.connectivity = '4';
     if (op.id === 'brightness') {
       node.parameters.brightness = -25;
       node.parameters.contrast = 1.2;
@@ -65,7 +87,7 @@ try {
     doc = connect(doc, parent.id, node.id);
     let second = input;
     if (op.inputs === 2) {
-      const inverse = newNode('invert');
+      const inverse = newNode(op.id === 'apply-mask' ? 'grayscale' : 'invert');
       doc.nodes.push(inverse);
       doc = connect(doc, parent.id, inverse.id);
       doc = connect(doc, inverse.id, node.id, 1);
@@ -73,15 +95,21 @@ try {
       allocated.push(second);
     }
     doc.preview.b = node.id;
-    const output = execute(cv, node, [input, second]);
+    const result = executeResult(cv, node, [input, second]);
+    const output = result.mat;
     allocated.push(output);
     await writeFile(join(folder, `${op.id}.py`), generatePython(doc));
     testCases.push({
       id: op.id,
+      sourcePixels,
       width: output.cols,
       height: output.rows,
       channels: output.channels(),
       pixels: [...output.data],
+      csv: result.measurements ? measurementsCsv(result.measurements) : undefined,
+      csvFile: result.measurements
+        ? `measurements_${topologicalOrder(doc).findIndex((n) => n.id === node.id)}.csv`
+        : undefined,
     });
     for (const mat of allocated) mat.delete();
   }

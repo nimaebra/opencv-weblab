@@ -9,6 +9,8 @@ import {
 } from '@roveran/engine';
 import { executionSignature, type PipelineDocument } from '@roveran/pipeline';
 import { resolveAssets, download } from './persistence';
+import { cancelLearning, handleLearningMessage } from './learningRuntime';
+import { closeMeasurements, handleMeasurementMessage } from './measurementRuntime';
 export const frames = new FrameStore();
 export const useRuntime = create<{
   status: 'loading' | 'ready' | 'processing' | 'exporting' | 'error';
@@ -40,6 +42,9 @@ let analysisSequence = 0,
   sampleSequence = 0;
 let activeAnalysis: { nodeId: string; revision: number; requestId: number } | undefined;
 let assetGeneration = 0;
+export function getLearningContext() {
+  return { worker, ready, revision, activeAnalysis };
+}
 function post(message: WorkerRequest) {
   worker?.postMessage(message);
 }
@@ -48,6 +53,7 @@ function armTimeout() {
   watchdog = setTimeout(() => {
     worker?.terminate();
     ready = false;
+    closeMeasurements();
     useRuntime.setState({
       status: 'error',
       message: 'Processing took too long. Restart the engine; your project is saved.',
@@ -61,6 +67,8 @@ export function startRuntime() {
   worker = new Worker(assetUrl('/engine-worker.js'));
   armTimeout();
   worker.onerror = (event) => {
+    cancelLearning();
+    closeMeasurements();
     clearTimeout(watchdog);
     ready = false;
     useRuntime.setState({
@@ -70,6 +78,7 @@ export function startRuntime() {
   };
   worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
     const msg = event.data;
+    if (handleMeasurementMessage(msg) || handleLearningMessage(msg)) return;
     if (msg.type === 'analysis') {
       if (
         activeAnalysis?.requestId === msg.requestId &&
@@ -118,7 +127,7 @@ export function startRuntime() {
       download(`${latest?.name ?? 'roveran'}.png`, msg.blob);
       useRuntime.setState({ status: 'ready', message: 'Full-resolution PNG exported' });
       if (latest) void evaluate(latest);
-    } else {
+    } else if (msg.type === 'error') {
       if (msg.revision !== undefined && msg.revision !== revision) return;
       clearTimeout(watchdog);
       useRuntime.setState({ status: 'error', message: msg.message });
@@ -127,6 +136,8 @@ export function startRuntime() {
   post({ type: 'init' });
 }
 export async function evaluate(document: PipelineDocument, reloadSources = false) {
+  cancelLearning();
+  closeMeasurements();
   latest = document;
   const signature = executionSignature(document);
   clearTimeout(timer);
@@ -149,6 +160,8 @@ export async function evaluate(document: PipelineDocument, reloadSources = false
   }, 24);
 }
 export function exportImage(document: PipelineDocument) {
+  cancelLearning();
+  closeMeasurements();
   latest = document;
   if (!ready) {
     useRuntime.setState({ message: 'The engine must finish loading before export.' });
@@ -163,6 +176,8 @@ export function exportImage(document: PipelineDocument) {
   post({ type: 'export', revision, document, target });
 }
 export function restartRuntime() {
+  cancelLearning();
+  closeMeasurements();
   clearTimeout(watchdog);
   worker?.terminate();
   worker = undefined;

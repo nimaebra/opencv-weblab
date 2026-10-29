@@ -1,5 +1,5 @@
 import type { Ref, HTMLAttributes } from 'react';
-import type { NodeResult } from '@roveran/engine';
+import type { NodeResult, Bounds } from '@roveran/engine';
 import type { PipelineNode } from '@roveran/pipeline';
 import { CanvasView } from './CanvasView';
 import type { View, Size } from './viewGeometry';
@@ -15,6 +15,8 @@ export function PreviewFrame({
   stageRef,
   events,
   original,
+  highlight,
+  bounds,
 }: {
   node?: PipelineNode;
   slot: 'A' | 'B';
@@ -27,6 +29,8 @@ export function PreviewFrame({
   stageRef?: Ref<HTMLDivElement>;
   events: HTMLAttributes<HTMLDivElement>;
   original?: Size;
+  highlight?: { x: number; y: number; radius: number };
+  bounds?: Bounds;
 }) {
   return (
     <div
@@ -52,6 +56,8 @@ export function PreviewFrame({
           view={view}
           pixelated={pixelated}
           checkerboard={checker}
+          highlight={highlight}
+          bounds={bounds}
         />
         {!result && (
           <div className="preview-placeholder">

@@ -15,9 +15,11 @@ export function useStageInteractions(
   inspect: boolean,
   pixel: Pixel,
   zoom: (factor: number) => void,
+  revision: number,
 ) {
   const drag = useRef<{ x: number; y: number; vx: number; vy: number } | null>(null),
     pointers = useRef(new Map<number, { x: number; y: number }>());
+  const cursor = useRef<{ nodeId: string; revision: number; x: number; y: number } | null>(null);
   return function stageHandlers(
     slot: string,
     result: NodeResult | undefined,
@@ -32,8 +34,13 @@ export function useStageInteractions(
           event.clientX - rect.left,
           event.clientY - rect.top,
         );
-      if (point) samplePixel(point.x, point.y);
-      else clearPixel();
+      if (point) {
+        cursor.current = { nodeId: result.nodeId, revision, ...point };
+        samplePixel(point.x, point.y);
+      } else {
+        cursor.current = null;
+        clearPixel();
+      }
     }
     function release(event: React.PointerEvent<HTMLDivElement>) {
       pointers.current.delete(event.pointerId);
@@ -45,10 +52,16 @@ export function useStageInteractions(
         if (delta) {
           event.preventDefault();
           if (inspect && slot === 'B' && result) {
-            samplePixel(
-              Math.max(0, Math.min(result.width - 1, (pixel?.x ?? 0) + delta[0])),
-              Math.max(0, Math.min(result.height - 1, (pixel?.y ?? 0) + delta[1])),
-            );
+            const previous =
+              cursor.current?.nodeId === result.nodeId && cursor.current.revision === revision
+                ? cursor.current
+                : pixel;
+            const point = {
+              x: Math.max(0, Math.min(result.width - 1, (previous?.x ?? 0) + delta[0])),
+              y: Math.max(0, Math.min(result.height - 1, (previous?.y ?? 0) + delta[1])),
+            };
+            cursor.current = { nodeId: result.nodeId, revision, ...point };
+            samplePixel(point.x, point.y);
           } else setView((v) => ({ ...v, x: v.x - delta[0] * 30, y: v.y - delta[1] * 30 }));
           return;
         }

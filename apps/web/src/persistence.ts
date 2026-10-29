@@ -146,6 +146,11 @@ export async function deleteLocal(id: string) {
         await tx.objectStore('projects').delete(id);
         if ((await tx.objectStore('settings').get('lastProject')) === id)
           await tx.objectStore('settings').delete('lastProject');
+        let cursor = await tx.objectStore('settings').openCursor();
+        while (cursor) {
+          if (String(cursor.key).startsWith(`learning:${id}:`)) await cursor.delete();
+          cursor = await cursor.continue();
+        }
         await tx.done;
       }
       transientProjects.delete(id);
@@ -208,6 +213,19 @@ export async function getAsset(id: string): Promise<Blob | undefined> {
     : value instanceof Blob
       ? value
       : new Blob([value.bytes], { type: value.type });
+}
+/** Optional learning progress uses the existing settings store, separate from portable graphs. */
+export async function readLearningProgress(key: string): Promise<unknown> {
+  const db = await database;
+  return db ? db.get('settings', `learning:${key}`) : undefined;
+}
+export async function writeLearningProgress(key: string, progress: unknown): Promise<void> {
+  await serialize(async () => {
+    if (deletedProjects.has(key.split(':')[0]!)) throw new Error('This experiment was deleted.');
+    const db = await database;
+    if (!db) throw new Error('Learning progress is temporary in this session.');
+    await db.put('settings', progress, `learning:${key}`);
+  });
 }
 export async function resolveAssets(document: PipelineDocument) {
   const items = await Promise.all(

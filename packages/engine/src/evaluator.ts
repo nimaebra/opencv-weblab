@@ -4,9 +4,11 @@ import {
   OPENCV_VERSION,
   type PipelineDocument,
 } from '@roveran/pipeline';
-import { execute, type CV } from './operations';
+import { executeResult, type CV } from './operations';
+import { WORKING_BYTES, type Measurements } from './measurements';
 import type { NodeResult, EvaluationStats } from './index';
-type Entry = { mat: CV; key: string; bytes: number; used: number };
+import { previewScale } from './learning';
+type Entry = { mat: CV; measurements?: Measurements; key: string; bytes: number; used: number };
 export class Evaluator {
   private cache = new Map<string, Entry>();
   private blobs = new Map<string, { blob: Blob; version: number }>();
@@ -68,13 +70,13 @@ export class Evaluator {
     cancelled: () => boolean = () => false,
     full = false,
     target?: string,
+    measurementFrame = false,
   ) {
     const start = performance.now();
     const order = topologicalOrder(doc);
     const errors: Record<string, string> = {};
     for (const issue of validateGraph(doc)) if (issue.nodeId) errors[issue.nodeId] = issue.message;
-    const longest = Math.max(1, ...doc.sources.flatMap((s) => [s.width, s.height]));
-    const scale = full || doc.preview.quality === 'full' ? 1 : Math.min(1, 1024 / longest);
+    const scale = full ? 1 : previewScale(doc);
     const results = new Map<string, Entry>();
     const nodes: NodeResult[] = [];
     let computed = 0,
@@ -90,6 +92,8 @@ export class Evaluator {
       visit(target);
     } else for (const n of doc.nodes) needed.add(n.id);
     const remaining = new Map<string, number>();
+    const frames: { nodeId: string; bitmap: ImageBitmap }[] = [];
+    let delivered = false;
     for (const e of doc.edges)
       if (needed.has(e.target)) remaining.set(e.source, (remaining.get(e.source) ?? 0) + 1);
     try {
@@ -129,18 +133,30 @@ export class Evaluator {
         const hit = !!entry;
         try {
           if (!entry) {
-            const mat =
+            const working = [...new Set(results.values())].reduce((sum, e) => sum + e.bytes, 0);
+            const execution =
               node.operation === 'source'
-                ? await this.source(node.sourceId!, scale)
-                : execute(
+                ? { mat: await this.source(node.sourceId!, scale), measurements: undefined }
+                : executeResult(
                     this.cv,
                     node,
                     inputs.map((e) => e.mat),
                     scale,
+                    WORKING_BYTES - working,
                   );
-            entry = { mat, key, bytes: mat.rows * mat.cols * mat.elemSize(), used: ++this.clock };
-            const working = [...new Set(results.values())].reduce((sum, e) => sum + e.bytes, 0);
-            if (working + entry.bytes > 256 * 1024 * 1024) {
+            const { mat, measurements } = execution;
+            entry = {
+              mat,
+              measurements,
+              key,
+              bytes:
+                mat.rows * mat.cols * mat.elemSize() +
+                (measurements
+                  ? new TextEncoder().encode(JSON.stringify(measurements)).byteLength
+                  : 0),
+              used: ++this.clock,
+            };
+            if (working + entry.bytes > WORKING_BYTES) {
               mat.delete();
               throw new Error(
                 'This graph needs too much working memory. Use a smaller image or fewer branches.',
@@ -164,6 +180,7 @@ export class Evaluator {
             mode: entry.mat.channels() === 1 ? 'gray' : 'rgba',
             elapsed: performance.now() - begin,
             cached: hit,
+            measurements: entry.measurements,
           });
         } catch (error) {
           errors[node.id] =
@@ -185,7 +202,6 @@ export class Evaluator {
         }
       }
       if (cancelled()) return null;
-      const frames: { nodeId: string; bitmap: ImageBitmap }[] = [];
       let blob: Blob | undefined;
       for (const [id, e] of results) {
         if (full && id !== target) continue;
@@ -197,7 +213,7 @@ export class Evaluator {
           const canvas = new OffscreenCanvas(m.cols, m.rows);
           const ctx = canvas.getContext('2d')!;
           ctx.putImageData(new ImageData(new Uint8ClampedArray(rgba.data), m.cols, m.rows), 0, 0);
-          if (full) blob = await canvas.convertToBlob({ type: 'image/png' });
+          if (full && !measurementFrame) blob = await canvas.convertToBlob({ type: 'image/png' });
           else frames.push({ nodeId: id, bitmap: canvas.transferToImageBitmap() });
         } finally {
           rgba.delete();
@@ -212,8 +228,10 @@ export class Evaluator {
         liveMatrices: this.cache.size,
         heapBytes: this.cv.HEAPU8?.buffer.byteLength ?? 0,
       };
+      delivered = true;
       return { nodes, errors, stats, frames, blob };
     } finally {
+      if (!delivered) for (const frame of frames) frame.bitmap.close();
       if (full) for (const e of new Set(results.values())) e.mat.delete();
       else this.evict(new Set());
     }

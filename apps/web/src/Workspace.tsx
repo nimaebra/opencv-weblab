@@ -1,13 +1,16 @@
 import { ReactFlowProvider } from '@xyflow/react';
+import { useCallback } from 'react';
 import { Menu, PanelRight } from 'lucide-react';
 import { Button } from '@roveran/ui';
 import { Library } from './Library';
 import { Inspector } from './Inspector';
 import { Graph } from './Graph';
 import { Preview } from './Preview';
+import { ParameterComparison } from './ParameterComparison';
 import type { WorkspaceController } from './useWorkspaceController';
 export function Workspace({ controller }: { controller: WorkspaceController }) {
   const { doc, panel, setPanel, workspace, resizePanel } = controller;
+  const revealWorkspace = useCallback(() => setPanel('workspace'), [setPanel]);
 
   return (
     <>
@@ -49,6 +52,7 @@ export function Workspace({ controller }: { controller: WorkspaceController }) {
         />
         <div className="workbench">
           <Preview />
+          <ParameterComparison />
           <div
             className="resize-handle preview-resize"
             role="separator"
@@ -83,7 +87,7 @@ export function Workspace({ controller }: { controller: WorkspaceController }) {
               );
           }}
         />
-        <Inspector />
+        <Inspector onCompare={revealWorkspace} />
       </main>
     </>
   );

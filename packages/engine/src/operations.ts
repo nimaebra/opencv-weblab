@@ -1,26 +1,65 @@
-import { registry, parameterSchema, type PipelineNode } from '@roveran/pipeline';
+import { registry, parameterSchema, inputContract, type PipelineNode } from '@roveran/pipeline';
+import {
+  analysisBudget,
+  componentOperation,
+  contourOperation,
+  WORKING_BYTES,
+  type OperationResult,
+} from './measurements';
 // OpenCV's generated Embind surface has no official TS declarations. Keep it at this boundary.
 export type CV = any;
 export function scaledOdd(value: number, scale: number, min = 1): number {
   return Math.max(min, Math.round((value * scale - 1) / 2) * 2 + 1);
 }
 export function execute(cv: CV, node: PipelineNode, inputs: CV[], scale = 1): CV {
+  return executeResult(cv, node, inputs, scale).mat;
+}
+export function executeResult(
+  cv: CV,
+  node: PipelineNode,
+  inputs: CV[],
+  scale = 1,
+  availableBytes = WORKING_BYTES,
+): OperationResult {
   const def = registry[node.operation];
   if (!def) throw new Error('Unsupported operation.');
   parameterSchema(node.operation).parse(node.parameters);
   const [src, b] = inputs;
   if (!src) throw new Error('Connect input A.');
-  if (!node.enabled) return src.clone();
+  if (!node.enabled) return { mat: src.clone() };
   const channels = src.channels();
-  if (def.accepts === 'gray' && channels !== 1)
-    throw new Error('Grayscale input required. Insert a Grayscale node.');
-  if (def.accepts === 'rgba' && channels !== 4)
-    throw new Error('Color input required. Connect a color source.');
+  for (let i = 0; i < def.inputs; i++) {
+    const contract = inputContract(def, i),
+      input = inputs[i];
+    if (!input) throw new Error(`Connect input ${contract.label}.`);
+    if (contract.accepts === 'gray' && input.channels() !== 1)
+      throw new Error(`Grayscale input required for ${contract.label}. Insert a Grayscale node.`);
+    if (contract.accepts === 'rgba' && input.channels() !== 4)
+      throw new Error(`Color input required for ${contract.label}. Connect a color source.`);
+  }
   if (
     def.inputs === 2 &&
-    (!b || b.rows !== src.rows || b.cols !== src.cols || b.type() !== src.type())
+    (!b ||
+      b.rows !== src.rows ||
+      b.cols !== src.cols ||
+      (def.matchingModes !== false && b.type() !== src.type()))
   )
     throw new Error('Inputs A and B must have identical dimensions and color mode.');
+  if (['components', 'filter-objects', 'contours'].includes(node.operation)) {
+    analysisBudget(src.rows * src.cols, availableBytes, node.operation === 'contours');
+    if (node.operation === 'contours') return contourOperation(cv, src);
+    return componentOperation(
+      cv,
+      src,
+      Number(node.parameters.connectivity),
+      node.operation === 'filter-objects'
+        ? [
+            Number(node.parameters.minArea) * scale * scale,
+            Number(node.parameters.maxArea) * scale * scale,
+          ]
+        : undefined,
+    );
+  }
   const temp: CV[] = [];
   const mat = () => {
     const m = new cv.Mat();
@@ -45,6 +84,11 @@ export function execute(cv: CV, node: PipelineNode, inputs: CV[], scale = 1): CV
   };
   try {
     switch (node.operation) {
+      case 'apply-mask':
+        dst.create(src.rows, src.cols, src.type());
+        dst.setTo(new cv.Scalar(0, 0, 0, 0));
+        src.copyTo(dst, b);
+        break;
       case 'grayscale':
         if (channels === 1) src.copyTo(dst);
         else cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
@@ -326,7 +370,7 @@ export function execute(cv: CV, node: PipelineNode, inputs: CV[], scale = 1): CV
       default:
         throw new Error(`No implementation for ${node.operation}`);
     }
-    return dst;
+    return { mat: dst };
   } catch (error) {
     dst.delete();
     throw error;

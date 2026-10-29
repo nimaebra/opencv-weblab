@@ -1,4 +1,33 @@
 import { test, expect } from '@playwright/test';
+test('loads the synthetic experiments and learning worker without a network', async ({
+  page,
+  context,
+}) => {
+  await page.goto('http://localhost:4173/');
+  await expect(page.getByText('Ready offline', { exact: true })).toBeVisible({ timeout: 45000 });
+  await page.reload();
+  await expect(page.locator('.status-dot.ready')).toBeVisible({ timeout: 30000 });
+  await context.setOffline(true);
+  await page.getByLabel('Example pipeline').selectOption('noise');
+  await expect(page.locator('.frame-b .frame-heading')).toContainText('Gaussian blur');
+  await expect(page.locator('.frame-b .frame-caption')).toContainText('192 × 192');
+  await page.getByRole('button', { name: 'Explain a pixel', exact: true }).click();
+  await page.locator('.frame-b .image-stage').focus();
+  await page.locator('.frame-b .image-stage').press('ArrowRight');
+  await expect(page.locator('.kernel-grid button')).toHaveCount(9);
+  for (const kind of [
+    'illumination',
+    'gaps',
+    'low-contrast',
+    'counting',
+    'shape-area',
+    'isolate-objects',
+  ]) {
+    await page.getByLabel('Example pipeline').selectOption(kind);
+    await expect(page.locator('.frame-b .frame-caption')).toContainText('192 × 192');
+    await expect(page.locator('.status-dot.ready')).toBeVisible();
+  }
+});
 for (const url of ['http://localhost:4173/', 'http://127.0.0.1:4174/lab/'])
   test(`reopens the production lab offline at ${new URL(url).pathname}`, async ({
     page,
@@ -23,6 +52,13 @@ for (const url of ['http://localhost:4173/', 'http://127.0.0.1:4174/lab/'])
     await expect(
       page.getByRole('button', { name: 'Export full-resolution PNG', exact: true }),
     ).toBeEnabled({ timeout: 30000 });
+    await page.getByLabel('Example pipeline').selectOption('counting');
+    await page.locator('.measurements-panel > summary').click();
+    await page.getByRole('button', { name: 'Measure full resolution / CSV', exact: true }).click();
+    await expect(page.getByRole('dialog').locator('caption')).toContainText(
+      '2 objects · full-resolution',
+    );
+    await page.getByRole('button', { name: 'Close dialog' }).click();
     expect(errors).toEqual([]);
   });
 test('saves pending edits before activating a real service-worker update', async ({ page }) => {

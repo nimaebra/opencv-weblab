@@ -17,7 +17,7 @@ import {
   type EdgeChange,
 } from '@xyflow/react';
 import { Image, SlidersHorizontal, AlertCircle, EyeOff, Plus } from 'lucide-react';
-import { registry, connect, type PipelineNode } from '@roveran/pipeline';
+import { registry, connect, inputContract, type PipelineNode } from '@roveran/pipeline';
 import { useLab } from './store';
 import { useRuntime } from './runtime';
 import { CanvasView } from './CanvasView';
@@ -61,14 +61,14 @@ const OperationNode = memo(function OperationNode({ data, selected }: NodeProps<
           position={Position.Left}
           id={port === 'A' ? '0' : '1'}
           style={{ top: def.inputs === 2 ? `${port === 'A' ? 38 : 70}%` : '50%' }}
-          aria-label={`Input ${port}`}
+          aria-label={`Input ${port}: ${inputContract(def, port === 'A' ? 0 : 1).label}`}
         />
       ))}
       <Handle type="source" position={Position.Right} id="output" aria-label="Output" />
       {def.inputs === 2 && (
         <>
-          <span className="port-label port-a">A</span>
-          <span className="port-label port-b">B</span>
+          <span className="port-label port-a">{def.inputContracts ? 'A · Image' : 'A'}</span>
+          <span className="port-label port-b">{def.inputContracts ? 'B · Mask' : 'B'}</span>
         </>
       )}
     </div>

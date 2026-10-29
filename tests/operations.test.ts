@@ -24,7 +24,7 @@ describe('real OpenCV WebAssembly operations', () => {
     'executes %s on controlled pixels',
     (id, accepts) => {
       const source = fixture(accepts === 'gray'),
-        second = source.clone();
+        second = id === 'apply-mask' ? fixture(true) : source.clone();
       let output: any;
       try {
         output = execute(cv, newNode(id), [source, second]);

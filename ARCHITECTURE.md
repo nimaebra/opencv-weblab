@@ -28,9 +28,15 @@ Output-B inspection clones the displayed bitmap into the worker, which keeps one
 
 ## Documents and edits
 
+Learning requests share the processing worker. Pixel explanations transfer only a cropped neighborhood (at most 7×7), use the active output-B analysis buffer, and reject obsolete request/revision identifiers. Gaussian weights are derived from the pinned runtime’s floating-point impulse response and quantized with symmetric error-carry normalization to model its 8-bit coefficient path. Numerical tests compare the resulting sums with actual WASM outputs, including borders, clipping and preview scaling. No operation is described as linear unless explicitly supported.
+
+Parameter comparisons transfer one input bitmap and evaluate three variants sequentially, capped at 1,024 pixels on the input’s longest edge. They use separate cancellation generations and return transferable frames to a dedicated imperative FrameStore. React stores only comparison metadata; closing, editing, exporting or restarting releases these frames. The graph and normal intermediate cache remain unchanged until the user applies a value. Resize and multi-input operations are excluded. Temporary comparison matrices are deleted after each variant; stale bitmaps are closed by the receiver.
+
+Documents may carry an optional `lessonId` referencing one of the bundled activities; old schema-version-1 documents remain valid. Local prediction/reflection text and completion flags live in namespaced IndexedDB settings, outside portable documents. Progress is independent of project names, isolated between project IDs, and removed when a project is deleted. A failed progress write is labeled temporary without claiming a durable save.
+
 `PipelineDocument` remains `schemaVersion: 1`. It contains nodes, versioned operation parameters, port-indexed edges, logical source references, A/B preview targets and a graph viewport. It never embeds images, matrices, credentials or temporary runtime errors. Input 0 is A; input 1 is B. Parsing validates operations, parameters, identifiers, ports and cycles, while allowing incomplete experiments.
 
-The image model is 8-bit RGBA or grayscale. Grayscale-only operations require an explicit conversion node. HSV masking explicitly converts inside its documented operation and returns grayscale; it does not introduce an HSV graph domain. Disabled operations pass input A through. Merge inputs must have equal dimensions and modes. New difference/XOR tools preserve input A's alpha; sharpen preserves source alpha.
+The image model is 8-bit RGBA or grayscale. Grayscale-only operations require an explicit conversion node. HSV masking explicitly converts inside its documented operation and returns grayscale; it does not introduce an HSV graph domain. Disabled operations pass input A through. Two-input operations require equal dimensions. Existing merges also require equal modes; Apply mask declares per-port contracts allowing a grayscale or RGBA image on A and a grayscale mask on B. New difference/XOR tools preserve input A's alpha; sharpen preserves source alpha.
 
 Insertion validates both replacement connections before committing. Batch duplication remaps internal edges and retains valid incoming references; it does not duplicate external outgoing connections. Source blobs are immutable and may be shared. Selection/follow state is editor state, while the chosen preview targets and viewport persist in the document. History holds at most 50 snapshots; each gesture or batch action creates one checkpoint.
 
@@ -47,3 +53,13 @@ A `.roveran.zip` contains `manifest.json` (`format: roveran-project`, version 1)
 Vite's configured base path is applied at request boundaries; logical built-in references in old JSON stay unchanged. The generated service worker precaches hashed UI assets, fonts, samples, the engine worker and OpenCV runtime. Its per-file ceiling explicitly accommodates the approximately 10 MiB runtime. Development does not register a worker.
 
 The app reports offline readiness only after installation or an existing controlling worker. Updates wait for an explicit action; pending edits flush before activation. A failed save requires a portable backup before reload. Browser storage/cache eviction can still remove local work. Production is served from `apps/web/dist` over HTTPS or localhost, with no backend configuration.
+
+## Object measurements
+
+Operation execution can return a matrix plus typed component or contour rows. The image-only adapter remains available to existing callers. The evaluator caches rows with their image, accounts for serialized metadata bytes and sends them through NodeResult. Derived measurements never enter project documents or IndexedDB. Schema version 1 remains unchanged.
+
+Integer component labels and contour vectors stay inside the worker. Components receive canonical IDs from the first foreground pixel in raster order. External contours sort by their earliest raster boundary point. This spatial ordering and the deterministic label palette are shared with generated Python. Component pixel area counts nonzero pixels; contour area measures the outer polygon and includes enclosed holes. Degenerate contour centroids are null.
+
+Analysis checks a conservative scratch estimate against the remaining 256 MiB graph working budget before entering WASM and rejects more than 10,000 objects. Label matrices, contour vectors and individual contour handles are deleted on success and failure. Per-node cache entries include metadata; full measurement evaluation leaves the preview cache unchanged.
+
+The measure worker request carries revision, request ID, document and node ID. Its separate generation cancels superseded requests and evaluates only target dependencies at scale 1, without PNG encoding or preview caching. Results pair rows with a transferable bitmap. A dedicated FrameStore owns that bitmap; closure, edits, exports and engine restart release it. Stale responses close their bitmap. Full results are held in memory for the dialog and CSV export. Preview table coordinates use the current image transform for bounding-box highlights.

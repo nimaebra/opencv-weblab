@@ -11,6 +11,29 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
+it('keeps each synthetic fixture distinct when experiments are switched in one session', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => new Response(url, { headers: { 'content-type': 'image/png' } })),
+  );
+  const { resolveAssets } = await import('../apps/web/src/persistence');
+  const ids = new Set<string>();
+  for (const kind of [
+    'noise',
+    'illumination',
+    'gaps',
+    'low-contrast',
+    'counting',
+    'shape-area',
+    'isolate-objects',
+  ] as const) {
+    const doc = makeExample(kind);
+    const assets = await resolveAssets(doc);
+    expect(await assets[0]!.blob.text()).toContain(doc.sources[0]!.builtin);
+    ids.add(doc.sources[0]!.id);
+  }
+  expect(ids.size).toBe(7);
+});
 it('upgrades a v1 database without losing its project, original or last-opened setting', async () => {
   const doc = makeExample(),
     db = await openDB('roveran', 1, {
@@ -117,4 +140,24 @@ it('does not resurrect a deleted project when an old autosave arrives late', asy
   await expect(storage.saveLocal(doc)).rejects.toThrow(/deleted/);
   await deleted;
   expect(await storage.listLocal()).toEqual([]);
+});
+it('stores learning progress per project and deletes it without removing another experiment’s notes', async () => {
+  const storage = await import('../apps/web/src/persistence');
+  const a = makeExample('noise'),
+    b = makeExample('noise');
+  await storage.saveLocal(a);
+  await storage.saveLocal(b);
+  const notes = {
+    version: 1,
+    prediction: 'Median rejects isolated noise.',
+    reflection: '',
+    completed: [0],
+  };
+  await storage.writeLearningProgress(`${a.id}:noise`, notes);
+  await storage.writeLearningProgress(`${b.id}:noise`, notes);
+  expect(await storage.readLearningProgress(`${a.id}:noise`)).toEqual(notes);
+  await storage.deleteLocal(a.id);
+  expect(await storage.readLearningProgress(`${a.id}:noise`)).toBeUndefined();
+  expect(await storage.readLearningProgress(`${b.id}:noise`)).toEqual(notes);
+  await expect(storage.writeLearningProgress(`${a.id}:noise`, notes)).rejects.toThrow(/deleted/);
 });

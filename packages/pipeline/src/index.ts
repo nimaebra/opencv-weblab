@@ -1,10 +1,11 @@
 import { lessons, type LessonKind } from './lessons';
 import { z } from 'zod';
-import { registry, parameterSchema, defaults, type ImageMode } from './registry';
+import { registry, parameterSchema, defaults, inputContract, type ImageMode } from './registry';
 export * from './registry';
 export * from './python';
 export * from './editing';
 export * from './lessons';
+export * from './comparisons';
 export const OPENCV_VERSION = '4.13.0';
 export const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 export const MAX_IMAGE_PIXELS = 4096 * 4096;
@@ -21,7 +22,19 @@ export const sourceSchema = z
     mime: z.enum(['image/png', 'image/jpeg', 'image/webp']),
     width: z.number().int().positive().max(16384),
     height: z.number().int().positive().max(16384),
-    builtin: z.enum(['/samples/fruits.jpg', '/samples/calibration.png']).optional(),
+    builtin: z
+      .enum([
+        '/samples/fruits.jpg',
+        '/samples/calibration.png',
+        '/samples/learning-noise.png',
+        '/samples/learning-illumination.png',
+        '/samples/learning-gaps.png',
+        '/samples/learning-contrast.png',
+        '/samples/learning-objects.png',
+        '/samples/learning-shapes.png',
+        '/samples/learning-particles.png',
+      ])
+      .optional(),
   })
   .strict()
   .refine((s) => s.width * s.height <= MAX_IMAGE_PIXELS, 'Image must be at most 16 megapixels.');
@@ -50,6 +63,7 @@ export const documentSchema = z
     schemaVersion: z.literal(1),
     id: identifier,
     name: z.string().min(1).max(100),
+    lessonId: z.enum(lessons.map((lesson) => lesson.id)).optional(),
     nodes: z.array(nodeSchema).max(100),
     edges: z.array(edgeSchema).max(250),
     sources: z.array(sourceSchema).max(20),
@@ -163,27 +177,31 @@ export function validateGraph(doc: PipelineDocument, requireInputs = true): Grap
           .filter((e) => e.target === node.id)
           .sort((a, b) => a.input - b.input);
         const first = inputs[0] ? modes.get(inputs[0].source) : undefined;
-        if (first && def.accepts !== 'any' && first !== def.accepts)
-          issues.push({
-            nodeId: node.id,
-            code: 'mode',
-            message:
-              def.accepts === 'gray'
-                ? 'Grayscale input required. Insert a Grayscale node.'
-                : 'Color input required. Connect a color source.',
-          });
+        for (const edge of inputs) {
+          const contract = inputContract(def, edge.input);
+          const mode = modes.get(edge.source);
+          if (mode && contract.accepts !== 'any' && mode !== contract.accepts)
+            issues.push({
+              nodeId: node.id,
+              code: 'mode',
+              message: `${contract.accepts === 'gray' ? 'Grayscale' : 'Color'} input required for ${contract.label}. ${contract.accepts === 'gray' ? 'Insert a Grayscale node.' : 'Connect a color source.'}`,
+            });
+        }
         if (def.inputs === 2 && inputs.length === 2) {
           const second = modes.get(inputs[1]!.source);
           const a = sizes.get(inputs[0]!.source),
             b = sizes.get(inputs[1]!.source);
           if (
-            (first && second && first !== second) ||
+            (def.matchingModes !== false && first && second && first !== second) ||
             (a && b && (a.width !== b.width || a.height !== b.height))
           )
             issues.push({
               nodeId: node.id,
               code: 'mode',
-              message: 'Inputs A and B must have identical dimensions and color mode.',
+              message:
+                def.matchingModes === false
+                  ? 'Image and mask must have identical dimensions.'
+                  : 'Inputs A and B must have identical dimensions and color mode.',
             });
         }
       }
@@ -231,11 +249,18 @@ export function connect(
   const mode = inferModes(next).get(source);
   const node = doc.nodes.find((n) => n.id === target)!;
   const def = registry[node.operation]!;
-  if (node.enabled && def.accepts !== 'any' && mode && mode !== def.accepts)
+  const contract = inputContract(def, input);
+  if (
+    node.enabled &&
+    (input === 0 || def.inputs > 1) &&
+    contract.accepts !== 'any' &&
+    mode &&
+    mode !== contract.accepts
+  )
     throw new Error(
-      `${def.label} requires ${def.accepts === 'gray' ? 'grayscale' : 'color'} input. Insert a ${def.accepts === 'gray' ? 'Grayscale' : 'color source'} node.`,
+      `${def.label}: ${contract.label} requires ${contract.accepts === 'gray' ? 'grayscale' : 'color'} input. Insert a ${contract.accepts === 'gray' ? 'Grayscale' : 'color source'} node.`,
     );
-  if (def.inputs === 2) {
+  if (node.enabled && def.inputs === 2) {
     const inputs = next.edges.filter((e) => e.target === target).sort((a, b) => a.input - b.input);
     if (inputs.length === 2) {
       const sizes = inferDimensions(next),
@@ -243,12 +268,17 @@ export function connect(
       const first = sizes.get(inputs[0]!.source),
         second = sizes.get(inputs[1]!.source);
       if (
-        (modes.get(inputs[0]!.source) &&
+        (def.matchingModes !== false &&
+          modes.get(inputs[0]!.source) &&
           modes.get(inputs[1]!.source) &&
           modes.get(inputs[0]!.source) !== modes.get(inputs[1]!.source)) ||
         (first && second && (first.width !== second.width || first.height !== second.height))
       )
-        throw new Error('Inputs A and B must have identical dimensions and color mode.');
+        throw new Error(
+          def.matchingModes === false
+            ? 'Image and mask must have identical dimensions.'
+            : 'Inputs A and B must have identical dimensions and color mode.',
+        );
     }
   }
   return next;
@@ -308,6 +338,7 @@ export function descendants(doc: PipelineDocument, id: string): Set<string> {
 export function makeExample(kind: LessonKind = 'edges'): PipelineDocument {
   const doc = emptyDocument();
   doc.name = lessons.find((l) => l.id === kind)!.title;
+  doc.lessonId = kind;
   doc.sources = [
     {
       id: 'sample-fruit',
@@ -327,7 +358,88 @@ export function makeExample(kind: LessonKind = 'edges'): PipelineDocument {
     doc.edges.push({ id: crypto.randomUUID(), source: parent, target: node.id, input: 0 });
     return node;
   }
-  if (kind === 'color-mask') {
+  if (['counting', 'shape-area', 'isolate-objects'].includes(kind)) {
+    const fixture =
+      kind === 'counting' ? 'objects' : kind === 'shape-area' ? 'shapes' : 'particles';
+    doc.sources = [
+      {
+        id: `objects-${fixture}`,
+        name: `learning-${fixture}.png`,
+        mime: 'image/png',
+        width: 192,
+        height: 192,
+        builtin: `/samples/learning-${fixture}.png` as SourceReference['builtin'],
+      },
+    ];
+    source.sourceId = `objects-${fixture}`;
+    const gray = add('grayscale', source.id, 230);
+    if (kind === 'counting') {
+      doc.preview.a = gray.id;
+      doc.preview.b = add('components', gray.id, 460).id;
+    } else if (kind === 'shape-area') {
+      doc.preview.a = add('components', gray.id, 460).id;
+      doc.preview.b = add('contours', gray.id, 460, 250).id;
+    } else {
+      const mask = add('threshold', gray.id, 460);
+      const filtered = add('filter-objects', mask.id, 690);
+      const isolated = add('apply-mask', source.id, 920);
+      doc.edges.push({
+        id: crypto.randomUUID(),
+        source: filtered.id,
+        target: isolated.id,
+        input: 1,
+      });
+      add('components', filtered.id, 920, 250);
+      doc.preview.a = mask.id;
+      doc.preview.b = isolated.id;
+    }
+  } else if (['noise', 'illumination', 'gaps', 'low-contrast'].includes(kind)) {
+    const fixture = {
+      noise: 'noise',
+      illumination: 'illumination',
+      gaps: 'gaps',
+      'low-contrast': 'contrast',
+    }[kind as 'noise' | 'illumination' | 'gaps' | 'low-contrast']!;
+    doc.sources = [
+      {
+        id: `learning-${fixture}`,
+        name: `learning-${fixture}.png`,
+        mime: 'image/png',
+        width: 192,
+        height: 192,
+        builtin: `/samples/learning-${fixture}.png` as SourceReference['builtin'],
+      },
+    ];
+    source.sourceId = `learning-${fixture}`;
+    const gray = add('grayscale', source.id, 230);
+    if (kind === 'noise') {
+      const blur = add('gaussian', gray.id, 460);
+      blur.parameters.kernel = 3;
+      const median = add('median', gray.id, 460, 250);
+      median.parameters.kernel = 3;
+      doc.preview.a = gray.id;
+      doc.preview.b = blur.id;
+    } else if (kind === 'illumination') {
+      const threshold = add('threshold', gray.id, 460);
+      threshold.parameters.threshold = 110;
+      const adaptive = add('adaptive', gray.id, 460, 250);
+      adaptive.parameters.kernel = 15;
+      adaptive.parameters.constant = 5;
+      doc.preview.a = threshold.id;
+      doc.preview.b = adaptive.id;
+    } else if (kind === 'gaps') {
+      const threshold = add('threshold', gray.id, 460);
+      const close = add('close', threshold.id, 690);
+      close.parameters.kernel = 7;
+      doc.preview.a = threshold.id;
+      doc.preview.b = close.id;
+    } else {
+      const equal = add('equalize', gray.id, 460);
+      add('normalize', gray.id, 460, 250);
+      doc.preview.a = gray.id;
+      doc.preview.b = equal.id;
+    }
+  } else if (kind === 'color-mask') {
     const mask = add('hsv-mask', source.id, 240);
     mask.parameters = { hMin: 0, hMax: 25, sMin: 100, sMax: 255, vMin: 50, vMax: 255 };
     const close = add('close', mask.id, 480);

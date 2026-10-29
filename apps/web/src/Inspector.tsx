@@ -1,11 +1,19 @@
 import { OperationControls } from './OperationControls';
+import { ComparisonButton } from './ParameterComparison';
 import { memo, useState } from 'react';
 import { Copy, Trash2, Pin, BookOpen, ArrowRight, Link, ArrowUpRight, Plus } from 'lucide-react';
-import { registry, connect, defaults, generateNodePython } from '@roveran/pipeline';
+import {
+  registry,
+  connect,
+  defaults,
+  generateNodePython,
+  inputContract,
+  inferModes,
+} from '@roveran/pipeline';
 import { Button } from '@roveran/ui';
 import { useLab, insertGrayscale } from './store';
 import { useRuntime } from './runtime';
-export const Inspector = memo(function Inspector() {
+export const Inspector = memo(function Inspector({ onCompare }: { onCompare: () => void }) {
   const doc = useLab((s) => s.document);
   const selected = useLab((s) => s.selected);
   const node = doc.nodes.find((n) => n.id === selected);
@@ -53,6 +61,12 @@ export const Inspector = memo(function Inspector() {
     );
   const def = registry[node.operation]!;
   const incoming = doc.edges.filter((e) => e.target === node.id);
+  const modes = inferModes(doc);
+  const grayscalePorts = Array.from({ length: def.inputs }, (_, input) => input).filter(
+    (input) =>
+      inputContract(def, input).accepts === 'gray' &&
+      modes.get(incoming.find((e) => e.input === input)?.source ?? '') !== 'gray',
+  );
   let python = '';
   try {
     python = generateNodePython(doc, node.id);
@@ -113,14 +127,19 @@ export const Inspector = memo(function Inspector() {
         {error && (
           <div className="inline-error" role="alert">
             <p>{error}</p>
-            {def.accepts === 'gray' && (
-              <Button onClick={() => insertGrayscale(node.id)} icon={<Plus size={14} />}>
-                Insert Grayscale
+            {grayscalePorts.map((port) => (
+              <Button
+                key={port}
+                onClick={() => insertGrayscale(node.id, port)}
+                icon={<Plus size={14} />}
+              >
+                Insert Grayscale for {inputContract(def, port).label}
               </Button>
-            )}
+            ))}
           </div>
         )}
         <OperationControls node={node} />
+        <ComparisonButton node={node} onOpen={onCompare} />
         {def.parameters.length > 0 && (
           <Button
             onClick={() =>
@@ -187,8 +206,8 @@ export const Inspector = memo(function Inspector() {
               <label className="field">
                 To input
                 <select value={input} onChange={(e) => setInput(Number(e.target.value))}>
-                  <option value={0}>A</option>
-                  <option value={1}>B</option>
+                  <option value={0}>A · {inputContract(def, 0).label}</option>
+                  <option value={1}>B · {inputContract(def, 1).label}</option>
                 </select>
               </label>
             )}

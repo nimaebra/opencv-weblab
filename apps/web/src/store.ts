@@ -201,10 +201,10 @@ export const useLab = create<LabState>((set, get) => ({
   },
   notify: (notice) => set({ notice }),
 }));
-export function insertGrayscale(id: string) {
+export function insertGrayscale(id: string, input = 0) {
   const { document: doc } = useLab.getState();
   const target = doc.nodes.find((n) => n.id === id)!;
-  const edge = doc.edges.find((e) => e.target === id && e.input === 0);
+  const edge = doc.edges.find((e) => e.target === id && e.input === input);
   if (edge) {
     useLab
       .getState()
@@ -220,7 +220,7 @@ export function insertGrayscale(id: string) {
   try {
     let next = { ...doc, nodes: [...doc.nodes, gray] };
     next = connect(next, source.id, gray.id);
-    next = connect(next, gray.id, id);
+    next = connect(next, gray.id, id, input);
     useLab.getState().edit(() => next);
   } catch (error) {
     useLab.getState().notify((error as Error).message);
@@ -235,6 +235,7 @@ export function updateParameter(nodeId: string, key: string, value: number | str
     notify(result.error.issues.map((i) => i.message).join(' '));
     return false;
   }
+  if (node.parameters[key] === result.data[key]) return true;
   update(
     nodeId,
     { parameters: result.data as Record<string, number | string> },

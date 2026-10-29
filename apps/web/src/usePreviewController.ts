@@ -4,6 +4,7 @@ import { useLab } from './store';
 import { useRuntime, analyzeOutput, clearPixel } from './runtime';
 import { useStageInteractions } from './useStageInteractions';
 import { origin, zoomAtPoint, type View } from './viewGeometry';
+import { usePixelStudy } from './usePixelStudy';
 export function usePreviewController() {
   const doc = useLab((s) => s.document),
     follow = useLab((s) => s.followSelection);
@@ -19,6 +20,7 @@ export function usePreviewController() {
     [pixelated, setPixelated] = useState(false),
     [checker, setChecker] = useState(true),
     [inspect, setInspect] = useState(false),
+    [explain, setExplain] = useState(false),
     [histogram, setHistogram] = useState(false);
   const container = useRef<HTMLDivElement>(null),
     stageB = useRef<HTMLDivElement>(null);
@@ -38,8 +40,8 @@ export function usePreviewController() {
     clearPixel();
   }, [dimensionKey]);
   useEffect(() => {
-    void analyzeOutput(inspect || histogram ? doc.preview.b : null);
-  }, [doc.preview.b, revision, inspect, histogram]);
+    void analyzeOutput(inspect || histogram || explain ? doc.preview.b : null);
+  }, [doc.preview.b, revision, inspect, histogram, explain]);
   useEffect(() => {
     if (!expanded) return;
     const handler = (e: KeyboardEvent) => {
@@ -77,7 +79,8 @@ export function usePreviewController() {
       setView((v) => zoomAtPoint(rb, rect, v, factor, rect.width / 2, rect.height / 2));
   }
   const shownPixel = pixel && pixel.nodeId === b?.id && pixel.revision === revision ? pixel : null;
-  const stageHandlers = useStageInteractions(view, setView, inspect, shownPixel, zoom);
+  const highlights = usePixelStudy(doc, shownPixel, explain, status);
+  const stageHandlers = useStageInteractions(view, setView, inspect, shownPixel, zoom, revision);
   return {
     doc,
     follow,
@@ -97,6 +100,9 @@ export function usePreviewController() {
     setChecker,
     inspect,
     setInspect,
+    explain,
+    setExplain,
+    ...highlights,
     histogram,
     setHistogram,
     container,

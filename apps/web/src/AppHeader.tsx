@@ -12,10 +12,10 @@ import { Button } from '@roveran/ui';
 import { makeExample, lessons, type LessonKind } from '@roveran/pipeline';
 import { useLab } from './store';
 import type { WorkspaceController } from './useWorkspaceController';
+import { GuidedExperiment } from './GuidedExperiment';
 export function AppHeader({ controller }: { controller: WorkspaceController }) {
   const { doc, past, future, saveStatus, setDialog, chooseDocument, openProjects } = controller;
 
-  const lesson = lessons.find((lesson) => lesson.title === doc.name);
   return (
     <>
       <header className="app-header">
@@ -128,16 +128,7 @@ export function AppHeader({ controller }: { controller: WorkspaceController }) {
           </Button>
         </div>
       </div>
-      {lesson && (
-        <details className="lesson-guide">
-          <summary>{lesson.objective}</summary>
-          <ol>
-            {lesson.experiments.map((text) => (
-              <li key={text}>{text}</li>
-            ))}
-          </ol>
-        </details>
-      )}
+      <GuidedExperiment doc={doc} />
     </>
   );
 }

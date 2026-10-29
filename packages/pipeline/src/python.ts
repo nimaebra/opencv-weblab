@@ -1,5 +1,6 @@
 import { registry } from './registry';
 import { topologicalOrder, validateGraph, type PipelineDocument } from './index';
+import { analysisPython } from './python-analysis';
 /** Executable source, never eval'd. Only validated numbers/enums reach expressions. */
 export function generatePython(doc: PipelineDocument): string {
   const issues = validateGraph(doc);
@@ -53,6 +54,12 @@ export function generatePython(doc: PipelineDocument): string {
     '    if not cv.imwrite(str(path), image): raise ValueError(f"Cannot save {path}")',
     '',
   ];
+  if (
+    doc.nodes.some((n) =>
+      ['components', 'contours', 'filter-objects', 'apply-mask'].includes(n.operation),
+    )
+  )
+    lines.push(analysisPython, '');
   const names = new Map<string, string>();
   const ordered = topologicalOrder(doc);
   ordered.forEach((n, i) => names.set(n.id, `image_${i}`));
@@ -73,6 +80,18 @@ export function generatePython(doc: PipelineDocument): string {
     } else if (!n.enabled) expr = `${a}.copy()  # bypassed; input A passes through`;
     else
       switch (n.operation) {
+        case 'components':
+          expr = `component_image(${a}, ${p.connectivity})`;
+          break;
+        case 'contours':
+          expr = `contour_image(${a})`;
+          break;
+        case 'filter-objects':
+          expr = `filter_objects(${a}, ${p.connectivity}, ${p.minArea}, ${p.maxArea})`;
+          break;
+        case 'apply-mask':
+          expr = `apply_mask(${a}, ${b})`;
+          break;
         case 'grayscale':
           expr = `cv.cvtColor(${a}, cv.COLOR_RGBA2GRAY) if ${a}.ndim == 3 else ${a}.copy()`;
           break;
@@ -172,7 +191,14 @@ export function generatePython(doc: PipelineDocument): string {
         default:
           throw new Error(`No Python generator for ${n.operation}`);
       }
-    lines.push(`${name} = ${expr}`, '');
+    if (n.enabled && ['components', 'contours'].includes(n.operation)) {
+      const measurementName = `objects_${names.get(n.id)!.slice(6)}`;
+      lines.push(
+        `${name}, ${measurementName} = ${expr}`,
+        `save_measurements("measurements_${names.get(n.id)!.slice(6)}.csv", ${measurementName}, "${n.operation}")`,
+        '',
+      );
+    } else lines.push(`${name} = ${expr}`, '');
   }
   const output = doc.preview.b ?? ordered.at(-1)?.id;
   if (output && names.has(output)) lines.push(`save_image("output.png", ${names.get(output)})`);
@@ -184,6 +210,10 @@ export function generateNodePython(doc: PipelineDocument, nodeId: string): strin
   if (!node) return '';
   const source = generatePython(doc);
   const index = topologicalOrder(doc).findIndex((n) => n.id === nodeId);
-  const expression = source.split('\n').find((line) => line.startsWith(`image_${index} = `));
-  return `# ${node.label.replace(/[\r\n]/g, ' ')} — ${registry[node.operation]!.fn}\n${expression ?? ''}`;
+  const lines = source.split('\n');
+  const start = lines.findIndex(
+    (line) => line.startsWith(`image_${index} = `) || line.startsWith(`image_${index}, `),
+  );
+  const expression = start < 0 ? '' : lines.slice(start, lines.indexOf('', start)).join('\n');
+  return `# ${node.label.replace(/[\r\n]/g, ' ')} — ${registry[node.operation]!.fn}\n${expression}`;
 }

@@ -21,6 +21,8 @@ export type OperationDefinition = {
   inputs: number;
   accepts: 'any' | ImageMode;
   output: 'same' | ImageMode;
+  inputContracts?: { label: string; accepts: 'any' | ImageMode }[];
+  matchingModes?: boolean;
   parameters: Parameter[];
   inputHelp: string;
   outputHelp: string;
@@ -591,6 +593,115 @@ export const operations: OperationDefinition[] = [
     2,
   ),
 ];
+operations.push(
+  {
+    ...op(
+      'components',
+      'Connected components',
+      'Analysis',
+      'Count connected nonzero regions. Black is background; every other intensity is foreground. Label colors are a visualization, not intensities or object identities across edits.',
+      'cv.connectedComponents',
+      [
+        choice(
+          'connectivity',
+          'Connectivity',
+          '8',
+          ['4', '8'],
+          'Four connects shared sides; eight also connects diagonal neighbors.',
+        ),
+      ],
+      'gray',
+      'rgba',
+    ),
+    outputHelp:
+      'An opaque RGBA label image with black background, plus pixel area, centroid and bounding box for each object.',
+    experiment:
+      'Compare 4 and 8 connectivity on diagonally touching squares. Pin the mask to A and inspect the object table for B.',
+    documentationUrl: 'https://docs.opencv.org/4.13.0/d3/dc0/group__imgproc__shape.html',
+  },
+  {
+    ...op(
+      'contours',
+      'Contour analysis',
+      'Analysis',
+      'Find external boundaries of nonzero grayscale regions. Only outer contours are retrieved: holes are not separate rows. Contour area measures the outer polygon, including enclosed holes, and differs from foreground pixel area.',
+      'cv.findContours / cv.contourArea',
+      [],
+      'gray',
+      'rgba',
+    ),
+    outputHelp:
+      'An RGBA copy of the grayscale input with green outer boundaries, plus contour area, perimeter, centroid and bounding box.',
+    experiment:
+      'Compare a filled 7×7 square: its pixel area is 49, contour area is 36 and perimeter is 24. A line or point has no area centroid.',
+    documentationUrl: 'https://docs.opencv.org/4.13.0/dd/d49/tutorial_js_contour_features.html',
+  },
+  {
+    ...op(
+      'filter-objects',
+      'Filter objects by area',
+      'Analysis',
+      'Keep connected foreground objects within an inclusive pixel-area range. Nonzero input is foreground. Preview thresholds scale with image area; small objects can disappear when downsampled.',
+      'cv.connectedComponents',
+      [
+        number(
+          'minArea',
+          'Minimum area',
+          25,
+          0,
+          16777216,
+          'Smallest retained area in full-resolution input pixels squared.',
+        ),
+        number(
+          'maxArea',
+          'Maximum area',
+          16777216,
+          0,
+          16777216,
+          'Largest retained area in full-resolution input pixels squared.',
+        ),
+        choice(
+          'connectivity',
+          'Connectivity',
+          '8',
+          ['4', '8'],
+          'Four connects shared sides; eight also connects diagonal neighbors.',
+        ),
+      ],
+      'gray',
+      'gray',
+    ),
+    outputHelp: 'A binary grayscale mask: retained objects are 255; everything else is zero.',
+    experiment:
+      'Increase the minimum area to remove small specks, then use Apply mask to isolate the retained objects.',
+    documentationUrl: 'https://docs.opencv.org/4.13.0/d3/dc0/group__imgproc__shape.html',
+  },
+  {
+    ...op(
+      'apply-mask',
+      'Apply mask',
+      'Combining',
+      'Keep image A wherever grayscale mask B is nonzero. All other pixels become black, or transparent for RGBA. Mask brightness does not multiply opacity.',
+      'cv.Mat.copyTo',
+      [],
+      'any',
+      'same',
+      2,
+    ),
+    inputContracts: [
+      { label: 'Image', accepts: 'any' },
+      { label: 'Mask', accepts: 'gray' },
+    ],
+    matchingModes: false,
+    inputHelp:
+      'A: grayscale or RGBA image. B: grayscale mask with the same dimensions. Nonzero mask pixels are included.',
+    experiment:
+      'Connect the original image to A and a threshold or filtered mask to B. Inspect the alpha channel of the isolated output.',
+  },
+);
+export function inputContract(def: OperationDefinition, input: number) {
+  return def.inputContracts?.[input] ?? { label: input === 0 ? 'A' : 'B', accepts: def.accepts };
+}
 export const registry = Object.assign(
   Object.create(null),
   Object.fromEntries(operations.map((o) => [o.id, o])),
@@ -619,6 +730,12 @@ export function parameterSchema(id: string) {
     .object(shape)
     .strict()
     .superRefine((values, ctx) => {
+      if (id === 'filter-objects' && Number(values.minArea) > Number(values.maxArea))
+        ctx.addIssue({
+          code: 'custom',
+          path: ['maxArea'],
+          message: 'Maximum area must be at least the minimum area.',
+        });
       if (id === 'hsv-mask') {
         for (const key of ['s', 'v'])
           if (Number(values[`${key}Min`]) > Number(values[`${key}Max`]))
