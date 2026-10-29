@@ -1,5 +1,5 @@
 {
-  "name": "@roveran/web",
+  "name": "@opencv-weblab/web",
   "private": true,
   "version": "0.2.0",
   "type": "module",
@@ -10,9 +10,9 @@
     "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
-    "@roveran/pipeline": "workspace:*",
-    "@roveran/engine": "workspace:*",
-    "@roveran/ui": "workspace:*",
+    "@opencv-weblab/pipeline": "workspace:*",
+    "@opencv-weblab/engine": "workspace:*",
+    "@opencv-weblab/ui": "workspace:*",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "@xyflow/react": "^12.9.0",

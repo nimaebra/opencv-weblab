@@ -1,4 +1,4 @@
-# Roveran
+# OpenCV WebLab
 
 <!-- impeccable:product-schema 1 -->
 
@@ -28,7 +28,7 @@ Preview-first lab: searchable library left, comparison above the graph, paramete
 
 ## Brand Commitments
 
-Roveran is the project name. The user approved the preview-first lab layout and requested a strong, responsive UI.
+OpenCV WebLab is the project name. The user approved the preview-first lab layout and requested a strong, responsive UI.
 
 ## Evidence on Hand
 

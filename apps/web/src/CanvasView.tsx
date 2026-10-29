@@ -1,8 +1,8 @@
 import { useEffect, useRef, memo } from 'react';
 import { frames } from './runtime';
-import type { FrameStore } from '@roveran/engine';
+import type { FrameStore } from '@opencv-weblab/engine';
 import { imageTransform, origin, type View } from './viewGeometry';
-import type { Bounds } from '@roveran/engine';
+import type { Bounds } from '@opencv-weblab/engine';
 export type { View } from './viewGeometry';
 export const CanvasView = memo(function CanvasView({
   nodeId,

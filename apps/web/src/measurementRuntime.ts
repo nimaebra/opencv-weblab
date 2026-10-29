@@ -4,8 +4,8 @@ import {
   type Measurements,
   type WorkerRequest,
   type WorkerResponse,
-} from '@roveran/engine';
-import type { PipelineDocument } from '@roveran/pipeline';
+} from '@opencv-weblab/engine';
+import type { PipelineDocument } from '@opencv-weblab/pipeline';
 import { getLearningContext, useRuntime } from './runtime';
 export const measurementFrames = new FrameStore();
 export const useMeasurements = create<{

@@ -1,12 +1,12 @@
-# Contributing to Roveran
+# Contributing to OpenCV WebLab
 
-Roveran helps people understand OpenCV through visible, reproducible experiments. Contributions should improve that learning experience while keeping the app usable without accounts, server APIs or external services.
+OpenCV WebLab helps people understand OpenCV through visible, reproducible experiments. Contributions should improve that learning experience while keeping the app usable without accounts, server APIs or external services.
 
 ## Development
 
 Use Node.js 24 and pnpm 11.28.9. Run `pnpm install --frozen-lockfile`, then `pnpm dev`. Open http://localhost:5173. The bundled OpenCV runtime avoids a separate download. Do not commit `node_modules`, build output, local data, generated test reports or secrets.
 
-Before submitting changes, run `pnpm format:check` and `pnpm check`. Run relevant Playwright scenarios for UI, worker, persistence or offline behavior; install browsers with `pnpm exec playwright install chromium firefox webkit`. Python parity uses a separate environment: install `tests/requirements.txt`, then run `ROVERAN_PYTHON=/path/to/python pnpm test:parity`.
+Before submitting changes, run `pnpm format:check` and `pnpm check`. Run relevant Playwright scenarios for UI, worker, persistence or offline behavior; install browsers with `pnpm exec playwright install chromium firefox webkit`. Python parity uses a separate environment: install `tests/requirements.txt`, then run `OPENCV_WEBLAB_PYTHON=/path/to/python pnpm test:parity`.
 
 Production/offline tests build the app and serve it on a separate local port. Service workers are disabled in development, so use a production preview to reproduce caching issues.
 

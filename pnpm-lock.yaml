@@ -65,13 +65,13 @@ importers:
       '@fontsource/ibm-plex-mono':
         specifier: ^5.2.0
         version: 5.3.0
-      '@roveran/engine':
+      '@opencv-weblab/engine':
         specifier: workspace:*
         version: link:../../packages/engine
-      '@roveran/pipeline':
+      '@opencv-weblab/pipeline':
         specifier: workspace:*
         version: link:../../packages/pipeline
-      '@roveran/ui':
+      '@opencv-weblab/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       '@xyflow/react':
@@ -125,7 +125,7 @@ importers:
 
   packages/engine:
     dependencies:
-      '@roveran/pipeline':
+      '@opencv-weblab/pipeline':
         specifier: workspace:*
         version: link:../pipeline
 

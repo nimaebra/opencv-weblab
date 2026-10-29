@@ -6,7 +6,7 @@ import {
   ArrowDownToLine,
   ArrowLeftRight,
 } from 'lucide-react';
-import { Button } from '@roveran/ui';
+import { Button } from '@opencv-weblab/ui';
 import { useLab } from './store';
 import { exportImage } from './runtime';
 export function PreviewToolbar({

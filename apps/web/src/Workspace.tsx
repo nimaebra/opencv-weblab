@@ -1,21 +1,52 @@
 import { ReactFlowProvider } from '@xyflow/react';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { Menu, PanelRight } from 'lucide-react';
-import { Button } from '@roveran/ui';
+import { Button } from '@opencv-weblab/ui';
 import { Library } from './Library';
 import { Inspector } from './Inspector';
 import { Graph } from './Graph';
 import { Preview } from './Preview';
 import { ParameterComparison } from './ParameterComparison';
+import { PanelResizeHandle } from './PanelResizeHandle';
 import type { WorkspaceController } from './useWorkspaceController';
+const panelBreakpoint = '(max-width: 950px)';
+function subscribeBreakpoint(change: () => void) {
+  const media = window.matchMedia(panelBreakpoint);
+  media.addEventListener('change', change);
+  return () => media.removeEventListener('change', change);
+}
+const isNarrow = () => window.matchMedia(panelBreakpoint).matches;
 export function Workspace({ controller }: { controller: WorkspaceController }) {
   const { doc, panel, setPanel, workspace, resizePanel } = controller;
   const revealWorkspace = useCallback(() => setPanel('workspace'), [setPanel]);
+  const narrow = useSyncExternalStore(subscribeBreakpoint, isNarrow);
+  const toolsTrigger = useRef<HTMLButtonElement>(null);
+  const inspectorTrigger = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!narrow || panel === 'workspace') return;
+    const drawer = document.getElementById(panel === 'tools' ? 'tools-panel' : 'inspector-panel');
+    const trigger = panel === 'tools' ? toolsTrigger.current : inspectorTrigger.current;
+    const target = panel === 'tools' ? drawer?.querySelector<HTMLInputElement>('input') : drawer;
+    target?.focus({ preventScroll: true });
+    return () => {
+      if (
+        isNarrow() &&
+        (drawer?.contains(document.activeElement) ||
+          document.activeElement?.classList.contains('panel-backdrop') ||
+          document.activeElement === document.body)
+      ) {
+        trigger?.focus({ preventScroll: true });
+      }
+    };
+  }, [narrow, panel]);
 
   return (
     <>
       <nav className="mobile-nav" aria-label="Workspace panels">
         <Button
+          ref={toolsTrigger}
+          aria-controls="tools-panel"
+          aria-expanded={panel === 'tools'}
           aria-pressed={panel === 'tools'}
           icon={<Menu size={15} />}
           onClick={() => setPanel(panel === 'tools' ? 'workspace' : 'tools')}
@@ -26,6 +57,9 @@ export function Workspace({ controller }: { controller: WorkspaceController }) {
           Workspace
         </Button>
         <Button
+          ref={inspectorTrigger}
+          aria-controls="inspector-panel"
+          aria-expanded={panel === 'inspector'}
           aria-pressed={panel === 'inspector'}
           icon={<PanelRight size={15} />}
           onClick={() => setPanel(panel === 'inspector' ? 'workspace' : 'inspector')}
@@ -34,60 +68,31 @@ export function Workspace({ controller }: { controller: WorkspaceController }) {
         </Button>
       </nav>
       <main ref={workspace} className={`workspace show-${panel}`}>
-        <Library />
+        <Library onClose={revealWorkspace} />
+        <PanelResizeHandle side="left" workspace={workspace} onResize={resizePanel} />
+        {narrow && panel !== 'workspace' && (
+          <button
+            className="panel-backdrop"
+            aria-label="Close workspace panel"
+            tabIndex={-1}
+            onClick={revealWorkspace}
+          />
+        )}
         <div
-          className="resize-handle library-resize"
-          role="separator"
-          aria-label="Resize tools panel"
-          aria-orientation="vertical"
-          tabIndex={0}
-          onPointerDown={(e) => resizePanel(e, 'left')}
-          onKeyDown={(e) => {
-            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight')
-              workspace.current?.style.setProperty(
-                '--library-width',
-                `${e.key === 'ArrowLeft' ? 210 : 280}px`,
-              );
-          }}
-        />
-        <div className="workbench">
+          id="workspace-content"
+          className="workbench"
+          tabIndex={-1}
+          inert={narrow && panel !== 'workspace'}
+        >
           <Preview />
           <ParameterComparison />
-          <div
-            className="resize-handle preview-resize"
-            role="separator"
-            aria-label="Resize image preview"
-            aria-orientation="horizontal"
-            tabIndex={0}
-            onPointerDown={(e) => resizePanel(e, 'vertical')}
-            onKeyDown={(e) => {
-              if (e.key === 'ArrowUp' || e.key === 'ArrowDown')
-                workspace.current?.style.setProperty(
-                  '--preview-height',
-                  e.key === 'ArrowUp' ? '300px' : '450px',
-                );
-            }}
-          />
+          <PanelResizeHandle side="vertical" workspace={workspace} onResize={resizePanel} />
           <ReactFlowProvider key={doc.id}>
             <Graph />
           </ReactFlowProvider>
         </div>
-        <div
-          className="resize-handle inspector-resize"
-          role="separator"
-          aria-label="Resize inspector panel"
-          aria-orientation="vertical"
-          tabIndex={0}
-          onPointerDown={(e) => resizePanel(e, 'right')}
-          onKeyDown={(e) => {
-            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight')
-              workspace.current?.style.setProperty(
-                '--inspector-width',
-                e.key === 'ArrowLeft' ? '360px' : '280px',
-              );
-          }}
-        />
-        <Inspector onCompare={revealWorkspace} />
+        <PanelResizeHandle side="right" workspace={workspace} onResize={resizePanel} />
+        <Inspector onCompare={revealWorkspace} onClose={revealWorkspace} />
       </main>
     </>
   );

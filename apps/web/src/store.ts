@@ -10,7 +10,7 @@ import {
   insertOperation,
   type PipelineDocument,
   type PipelineNode,
-} from '@roveran/pipeline';
+} from '@opencv-weblab/pipeline';
 type Edit = (document: PipelineDocument) => PipelineDocument;
 type LabState = {
   document: PipelineDocument;

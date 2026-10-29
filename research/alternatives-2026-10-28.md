@@ -1,12 +1,12 @@
-# Roveran alternatives: primary-source research
+# OpenCV WebLab alternatives: primary-source research
 
 Research date: **28 October 2026**. Repository metadata and source were inspected; these applications were **not installed or benchmarked**. “Confirmed” below means documented or visible in implementation, not independently exercised in a browser. Missing features are reported as **not found in reviewed material**, rather than assumed impossible. Latest commit means the default branch, which can differ from a repository's latest push.
 
 ## Assessment
 
-There is real competition. **VisioFlow and OpenCV-Flow are the closest browser-executed alternatives**; **Image Pipes and ImageLab are close functional/educational alternatives with server-side execution**. JointJS+ also publishes a directly relevant commercial OpenCV graph demo. Roveran should not claim that visual OpenCV pipelines, live parameter exploration, or browser execution are new by themselves.
+There is real competition. **VisioFlow and OpenCV-Flow are the closest browser-executed alternatives**; **Image Pipes and ImageLab are close functional/educational alternatives with server-side execution**. JointJS+ also publishes a directly relevant commercial OpenCV graph demo. OpenCV WebLab should not claim that visual OpenCV pipelines, live parameter exploration, or browser execution are new by themselves.
 
-The most useful product distinction is the combination of a teaching-focused experience, automatic evaluation without starting a runner, a bounded worker-based engine, branches and merges, synchronized intermediate comparison, readable Python export, and useful guest persistence. This is a positioning inference from the comparison, not proof that no competitor implements any particular combination. No reviewed alternative was established as matching every Roveran requirement.
+The most useful product distinction is the combination of a teaching-focused experience, automatic evaluation without starting a runner, a bounded worker-based engine, branches and merges, synchronized intermediate comparison, readable Python export, and useful guest persistence. This is a positioning inference from the comparison, not proof that no competitor implements any particular combination. No reviewed alternative was established as matching every OpenCV WebLab requirement.
 
 Two definitions matter throughout this report:
 
@@ -23,15 +23,15 @@ Two definitions matter throughout this report:
 | [ImageLab](https://github.com/c2siorg/imagelab)                                        | React + Blockly web app                                          | Current execution API uses Python/FastAPI backend | Explicit Run in current toolbar                                 | Graph/macro branches and branch blending            | Python + pipeline JSON                              | Apache-2.0                                                      |
 | [CVNodes](https://github.com/rupeshs/CVNodes)                                          | LiteGraph.js web UI served by FastAPI                            | Python/OpenCV backend                             | Explicit Run                                                    | Branching and compositing                           | Workflow JSON; Python generator not found           | No declared license found; GitHub license null                  |
 
-The first two overlap with Roveran's client-side execution. The next three overlap with visual OpenCV prototyping but require a processing backend. A public repository with no declared license should be distinguished from a project with a verified open-source license.
+The first two overlap with OpenCV WebLab's client-side execution. The next three overlap with visual OpenCV prototyping but require a processing backend. A public repository with no declared license should be distinguished from a project with a verified open-source license.
 
 ### VisioFlow: closest architectural match
 
-The [operation registry](https://github.com/FlorianVal/ComputerVisionFlowUI/blob/9e2092b42b156c21ca144c74c4df52b201ffce01/src/nodes/index.js) has 11 node types including its image source: grayscale, blur, Canny, morphology, contours, threshold, rotate, brightness/contrast, invert, and color conversion. Some types contain multiple operation choices. It is a smaller classical toolkit than Roveran's 25 separate operations.
+The [operation registry](https://github.com/FlorianVal/ComputerVisionFlowUI/blob/9e2092b42b156c21ca144c74c4df52b201ffce01/src/nodes/index.js) has 11 node types including its image source: grayscale, blur, Canny, morphology, contours, threshold, rotate, brightness/contrast, invert, and color conversion. Some types contain multiple operation choices. It is a smaller classical toolkit than OpenCV WebLab's 25 separate operations.
 
 The [processing hook](https://github.com/FlorianVal/ComputerVisionFlowUI/blob/9e2092b42b156c21ca144c74c4df52b201ffce01/src/hooks/useImageProcessor.js) runs from a React effect whenever an upstream image or declared parameter dependency changes; it discards results after an abort. This supports the automatic-update claim. The [image processor](https://github.com/FlorianVal/ComputerVisionFlowUI/blob/9e2092b42b156c21ca144c74c4df52b201ffce01/src/services/imageProcessor.js) uses DOM canvases and cv.imread; an async function alone does not establish a dedicated worker or nonblocking OpenCV calls.
 
-The [app's initial graph](https://github.com/FlorianVal/ComputerVisionFlowUI/blob/9e2092b42b156c21ca144c74c4df52b201ffce01/src/App.jsx) fans one source into three branches. Its [code generator](https://github.com/FlorianVal/ComputerVisionFlowUI/blob/9e2092b42b156c21ca144c74c4df52b201ffce01/src/utils/pipelineCodeGenerator.js) emits Python/OpenCV and OpenCV.js by collecting root-to-leaf paths. General merging, a bounded graph cache, account/cloud projects, graph JSON persistence, and Roveran-style synchronized A/B comparison were not established in reviewed files.
+The [app's initial graph](https://github.com/FlorianVal/ComputerVisionFlowUI/blob/9e2092b42b156c21ca144c74c4df52b201ffce01/src/App.jsx) fans one source into three branches. Its [code generator](https://github.com/FlorianVal/ComputerVisionFlowUI/blob/9e2092b42b156c21ca144c74c4df52b201ffce01/src/utils/pipelineCodeGenerator.js) emits Python/OpenCV and OpenCV.js by collecting root-to-leaf paths. General merging, a bounded graph cache, account/cloud projects, graph JSON persistence, and OpenCV WebLab-style synchronized A/B comparison were not established in reviewed files.
 
 The [README](https://github.com/FlorianVal/ComputerVisionFlowUI) claims MIT licensing, but the [repository tree](https://api.github.com/repos/FlorianVal/ComputerVisionFlowUI/git/trees/main?recursive=1) has no LICENSE file and [metadata](https://api.github.com/repos/FlorianVal/ComputerVisionFlowUI) reports license null. Record this as **public source; MIT claimed but not independently verified**.
 
@@ -39,7 +39,7 @@ The [README](https://github.com/FlorianVal/ComputerVisionFlowUI) claims MIT lice
 
 The [official overview](https://opencvflow.org/en/overview/) explicitly positions the IDE for visualizing, testing and teaching computer vision using React, React Flow and OpenCV.js, including programmable custom components. The [home page](https://opencvflow.org/en/) links its online app and describes real-time image/video visualization.
 
-Its [Run/Stop buttons](https://github.com/Piemontez/opencvflow/blob/b01cb5050f50d7201545a93ef82f26a77212a2ec/src/ide/components/Flow/controls.tsx) start a [continuous processing loop](https://github.com/Piemontez/opencvflow/blob/b01cb5050f50d7201545a93ef82f26a77212a2ec/src/core/contexts/RunnerStore.ts). This gives live processing after Run is started, rather than Roveran's default evaluation on graph edits. The loop processes the nodes repeatedly and yields with a 5 ms timeout; affected-subgraph caching was not established.
+Its [Run/Stop buttons](https://github.com/Piemontez/opencvflow/blob/b01cb5050f50d7201545a93ef82f26a77212a2ec/src/ide/components/Flow/controls.tsx) start a [continuous processing loop](https://github.com/Piemontez/opencvflow/blob/b01cb5050f50d7201545a93ef82f26a77212a2ec/src/core/contexts/RunnerStore.ts). This gives live processing after Run is started, rather than OpenCV WebLab's default evaluation on graph edits. The loop processes the nodes repeatedly and yields with a 5 ms timeout; affected-subgraph caching was not established.
 
 There are real multi-input operators, for example [Bitwise AND](https://github.com/Piemontez/opencvflow/blob/b01cb5050f50d7201545a93ef82f26a77212a2ec/src/plugins/opencv/arithmetic/CVBitwiseAndComponent.ts), plus [Gaussian blur](https://github.com/Piemontez/opencvflow/blob/b01cb5050f50d7201545a93ef82f26a77212a2ec/src/plugins/opencv/smoothing/GaussianBlurComponent.ts) and many other classical filters. [Save](https://github.com/Piemontez/opencvflow/blob/b01cb5050f50d7201545a93ef82f26a77212a2ec/src/plugins/ide/files/FileSaveAction.tsx) downloads an .ocvflow.json project and [Open](https://github.com/Piemontez/opencvflow/blob/b01cb5050f50d7201545a93ef82f26a77212a2ec/src/plugins/ide/files/FileOpenAction.tsx) restores it. Python pipeline export was not found. [Package metadata](https://github.com/Piemontez/opencvflow/blob/b01cb5050f50d7201545a93ef82f26a77212a2ec/package.json) reports version 0.10.3; [GitHub metadata](https://api.github.com/repos/Piemontez/opencvflow) and the inspected tree show no license declaration.
 
@@ -55,7 +55,7 @@ The [math nodes](https://github.com/mrajaeim/image-pipes/blob/main/backend/app/n
 
 The [README](https://github.com/c2siorg/imagelab) still mentions OpenCV.js, but also explicitly documents a modern React frontend sending execution requests to FastAPI. The [API client](https://github.com/c2siorg/imagelab/blob/main/imagelab-frontend/src/api/pipeline.ts) and [Python executor](https://github.com/c2siorg/imagelab/blob/main/imagelab-backend/app/services/pipeline_executor.py) confirm server-side execution and cached intermediate inspection. It should not be described as browser-only processing on that evidence.
 
-The [toolbar](https://github.com/c2siorg/imagelab/blob/main/imagelab-frontend/src/components/Toolbar.tsx) offers explicit Run, JSON import/export and Python export. The [Python exporter](https://github.com/c2siorg/imagelab/blob/main/imagelab-backend/app/services/python_exporter/generator.py) handles pipeline graphs and branch-blend macros; this is Blockly/macro composition rather than the same React Flow interaction as Roveran. License: [Apache-2.0](https://github.com/c2siorg/imagelab/blob/main/LICENSE).
+The [toolbar](https://github.com/c2siorg/imagelab/blob/main/imagelab-frontend/src/components/Toolbar.tsx) offers explicit Run, JSON import/export and Python export. The [Python exporter](https://github.com/c2siorg/imagelab/blob/main/imagelab-backend/app/services/python_exporter/generator.py) handles pipeline graphs and branch-blend macros; this is Blockly/macro composition rather than the same React Flow interaction as OpenCV WebLab. License: [Apache-2.0](https://github.com/c2siorg/imagelab/blob/main/LICENSE).
 
 ### CVNodes: lightweight server-backed prototype
 
@@ -94,7 +94,7 @@ The [official demo page](https://www.jointjs.com/demos/image-processor) explicit
 
 ### PipeMagic
 
-The [README](https://github.com/mo1app/pipemagic) describes a Nuxt/Vue Flow editor and a framework-independent npm runtime. Its eight node types are Input, Remove BG, Normalize, Outline, Estimate Depth, Face Parse, Upscale and Output; this is an asset/AI pipeline rather than Roveran's classical CV library. Model weights are downloaded when needed even though inference is browser-side.
+The [README](https://github.com/mo1app/pipemagic) describes a Nuxt/Vue Flow editor and a framework-independent npm runtime. Its eight node types are Input, Remove BG, Normalize, Outline, Estimate Depth, Face Parse, Upscale and Output; this is an asset/AI pipeline rather than OpenCV WebLab's classical CV library. Model weights are downloaded when needed even though inference is browser-side.
 
 The [runner](https://github.com/mo1app/pipemagic/blob/81428f0a6636fbb31f05a268467982620b3570a1/app/composables/usePipelineRunner.ts) performs dependency ordering and cache checks. The [toolbar](https://github.com/mo1app/pipemagic/blob/81428f0a6636fbb31f05a268467982620b3570a1/app/components/TopBar.vue) automatically runs on image upload and provides explicit Run/keyboard execution. [Parameter updates](https://github.com/mo1app/pipemagic/blob/81428f0a6636fbb31f05a268467982620b3570a1/app/stores/pipeline.ts) invalidate downstream state; automatic parameter-triggered execution was not found in those reviewed paths. [File I/O](https://github.com/mo1app/pipemagic/blob/81428f0a6636fbb31f05a268467982620b3570a1/app/composables/useFileIo.ts) exports/imports .imgpipe.json. The [metadata](https://api.github.com/repos/mo1app/pipemagic) identifies MIT licensing.
 
@@ -135,7 +135,7 @@ Metadata: [PipeMagic](https://api.github.com/repos/mo1app/pipemagic), [PyNode](h
 - [cables.gl](https://cables.gl/) is a live visual browser programming environment with operators and post-processing effects, now open source. Useful as a node-editor reference; its main product is interactive visual content rather than classical CV education.
 - **Unverified lead:** [LocalTools' image editor](https://www.localtools.studio/tools/image-editor) appears in indexed first-party results as a browser-local node editor with blur, threshold, edge detection, transforms and merging. Repeated direct page retrieval timed out during this research. Source availability, licensing, execution behavior and current usability remain unverified; do not count it as a fully evaluated competitor.
 
-## Product implications for Roveran
+## Product implications for OpenCV WebLab
 
 Prioritize a hands-on comparison against VisioFlow, OpenCV-Flow and ImageLab before widening the operation catalog. The research supports these differentiation hypotheses:
 

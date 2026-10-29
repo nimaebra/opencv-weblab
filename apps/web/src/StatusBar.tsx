@@ -1,6 +1,6 @@
 import { useOffline } from './offline';
 import { RefreshCw, X } from 'lucide-react';
-import { Button } from '@roveran/ui';
+import { Button } from '@opencv-weblab/ui';
 import { useLab } from './store';
 import { useRuntime, restartRuntime } from './runtime';
 import type { WorkspaceController } from './useWorkspaceController';

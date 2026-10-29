@@ -39,6 +39,17 @@ it('rejects a missing source without writing a partial imported experiment', asy
   await expect(files.readBackup(new Blob([zipSync(archive)]))).rejects.toThrow(/missing/);
   expect(await storage.listLocal()).toEqual([]);
 });
+it('imports backups created before the app was renamed', async () => {
+  const { files, doc } = await fixture();
+  const archive = unzipSync(new Uint8Array(await (await files.createBackup(doc)).arrayBuffer()));
+  const manifest = JSON.parse(strFromU8(archive['manifest.json']!));
+  expect(manifest.format).toBe('opencv-weblab-project');
+  manifest.format = 'roveran-project';
+  archive['manifest.json'] = strToU8(JSON.stringify(manifest));
+  const imported = await files.readBackup(new Blob([zipSync(archive)]));
+  expect(imported.document.edges).toEqual(doc.edges);
+  expect(imported.assets).toHaveLength(doc.sources.length);
+});
 it('rejects unsafe paths, excess expanded sizes and unsupported versions before loading images', async () => {
   const { files, doc } = await fixture();
   const archive = unzipSync(new Uint8Array(await (await files.createBackup(doc)).arrayBuffer()));

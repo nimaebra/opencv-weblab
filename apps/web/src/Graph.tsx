@@ -17,7 +17,7 @@ import {
   type EdgeChange,
 } from '@xyflow/react';
 import { Image, SlidersHorizontal, AlertCircle, EyeOff, Plus } from 'lucide-react';
-import { registry, connect, inputContract, type PipelineNode } from '@roveran/pipeline';
+import { registry, connect, inputContract, type PipelineNode } from '@opencv-weblab/pipeline';
 import { useLab } from './store';
 import { useRuntime } from './runtime';
 import { CanvasView } from './CanvasView';
@@ -255,7 +255,7 @@ export function Graph() {
         }}
         onDrop={(e) => {
           e.preventDefault();
-          const operation = e.dataTransfer.getData('application/roveran-operation');
+          const operation = e.dataTransfer.getData('application/opencv-weblab-operation');
           setConnectionHint('');
           if (!registry[operation]) return;
           const position = flow.screenToFlowPosition({ x: e.clientX, y: e.clientY });

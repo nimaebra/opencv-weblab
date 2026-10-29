@@ -5,12 +5,16 @@ import {
   parseDocument,
   type PipelineDocument,
   type SourceReference,
-} from '@roveran/pipeline';
+} from '@opencv-weblab/pipeline';
 import { resolveAssets } from './persistence';
 const MAX_JSON = 2 * 1024 * 1024;
 const MAX_TOTAL = 20 * MAX_IMAGE_BYTES + MAX_JSON + 65536;
 const extension = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' };
-type Manifest = { format: 'roveran-project'; version: 1; assets: { id: string; path: string }[] };
+type Manifest = {
+  format: 'opencv-weblab-project';
+  version: 1;
+  assets: { id: string; path: string }[];
+};
 export async function validateImage(blob: Blob): Promise<{ width: number; height: number }> {
   if (!(blob.type in extension) || blob.size > MAX_IMAGE_BYTES || !blob.size)
     throw new Error('Choose a PNG, JPEG or still WebP image no larger than 20 MiB.');
@@ -50,7 +54,7 @@ export async function createBackup(document: PipelineDocument): Promise<Blob> {
       'Reconnect missing source images before making a portable backup. You can still export graph-only JSON.',
     );
   const files: Unzipped = { 'project.json': strToU8(JSON.stringify(document)) };
-  const manifest: Manifest = { format: 'roveran-project', version: 1, assets: [] };
+  const manifest: Manifest = { format: 'opencv-weblab-project', version: 1, assets: [] };
   const sourcesById = new Map(document.sources.map((source) => [source.id, source]));
   await Promise.all(
     assets.map(async (asset) => {
@@ -106,7 +110,7 @@ export async function readBackup(
         },
       },
       (error, data) =>
-        error ? reject(new Error('This is not a readable Roveran backup.')) : resolve(data),
+        error ? reject(new Error('This is not a readable OpenCV WebLab backup.')) : resolve(data),
     ),
   );
   if (invalid || !files['project.json'] || !files['manifest.json'])
@@ -114,7 +118,7 @@ export async function readBackup(
   const manifest = JSON.parse(strFromU8(files['manifest.json'])) as Manifest;
   const original = parseDocument(JSON.parse(strFromU8(files['project.json'])));
   if (
-    manifest.format !== 'roveran-project' ||
+    !['opencv-weblab-project', 'roveran-project'].includes(manifest.format) ||
     manifest.version !== 1 ||
     !Array.isArray(manifest.assets) ||
     manifest.assets.length !== original.sources.length

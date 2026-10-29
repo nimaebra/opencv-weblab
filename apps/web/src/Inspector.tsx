@@ -1,7 +1,7 @@
 import { OperationControls } from './OperationControls';
 import { ComparisonButton } from './ParameterComparison';
 import { memo, useState } from 'react';
-import { Copy, Trash2, Pin, BookOpen, ArrowRight, Link, ArrowUpRight, Plus } from 'lucide-react';
+import { Copy, Trash2, Pin, BookOpen, ArrowRight, Link, ArrowUpRight, Plus, X } from 'lucide-react';
 import {
   registry,
   connect,
@@ -9,11 +9,17 @@ import {
   generateNodePython,
   inputContract,
   inferModes,
-} from '@roveran/pipeline';
-import { Button } from '@roveran/ui';
+} from '@opencv-weblab/pipeline';
+import { Button } from '@opencv-weblab/ui';
 import { useLab, insertGrayscale } from './store';
 import { useRuntime } from './runtime';
-export const Inspector = memo(function Inspector({ onCompare }: { onCompare: () => void }) {
+export const Inspector = memo(function Inspector({
+  onCompare,
+  onClose,
+}: {
+  onCompare: () => void;
+  onClose: () => void;
+}) {
   const doc = useLab((s) => s.document);
   const selected = useLab((s) => s.selected);
   const node = doc.nodes.find((n) => n.id === selected);
@@ -25,10 +31,20 @@ export const Inspector = memo(function Inspector({ onCompare }: { onCompare: () 
   const [input, setInput] = useState(0);
   if (!node)
     return (
-      <aside className="inspector panel">
+      <aside
+        id="inspector-panel"
+        className="inspector panel"
+        aria-label="Node inspector"
+        tabIndex={-1}
+      >
         <div className="panel-heading">
           <h2>Inspector</h2>
-          <ArrowUpRight className="shortcut" size={15} />
+          <Button
+            className="panel-close"
+            aria-label="Close inspector panel"
+            icon={<X size={16} />}
+            onClick={onClose}
+          />
         </div>
         <div className="inspector-empty">
           <div className="inspector-empty-icon">
@@ -74,7 +90,12 @@ export const Inspector = memo(function Inspector({ onCompare }: { onCompare: () 
     python = '# Connect valid inputs to see executable Python for this step.';
   }
   return (
-    <aside className="inspector panel" aria-label="Node inspector">
+    <aside
+      id="inspector-panel"
+      className="inspector panel"
+      aria-label="Node inspector"
+      tabIndex={-1}
+    >
       <div className="panel-heading">
         <h2>Inspector</h2>
         <div className="row">
@@ -89,6 +110,12 @@ export const Inspector = memo(function Inspector({ onCompare }: { onCompare: () 
             title="Delete node"
             icon={<Trash2 size={15} />}
             onClick={() => useLab.getState().remove(node.id)}
+          />
+          <Button
+            className="panel-close"
+            aria-label="Close inspector panel"
+            icon={<X size={16} />}
+            onClick={onClose}
           />
         </div>
       </div>

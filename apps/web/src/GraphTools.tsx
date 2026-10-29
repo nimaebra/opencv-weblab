@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { GitBranch } from 'lucide-react';
-import { Button } from '@roveran/ui';
-import { operations, type PipelineDocument } from '@roveran/pipeline';
+import { Button } from '@opencv-weblab/ui';
+import { operations, type PipelineDocument } from '@opencv-weblab/pipeline';
 import { useLab } from './store';
 export function GraphTools({
   doc,

@@ -6,8 +6,8 @@ import {
   type PixelExplanation,
   type WorkerRequest,
   type WorkerResponse,
-} from '@roveran/engine';
-import type { PipelineDocument } from '@roveran/pipeline';
+} from '@opencv-weblab/engine';
+import type { PipelineDocument } from '@opencv-weblab/pipeline';
 import { frames, getLearningContext, useRuntime } from './runtime';
 type Comparison = Omit<Extract<WorkerResponse, { type: 'comparison' }>, 'type' | 'frames'>;
 export const comparisonFrames = new FrameStore();

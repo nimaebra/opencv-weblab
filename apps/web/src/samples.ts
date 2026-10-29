@@ -1,5 +1,5 @@
 import { assetUrl } from './paths';
-import { newNode } from '@roveran/pipeline';
+import { newNode } from '@opencv-weblab/pipeline';
 import { putAsset } from './persistence';
 import { useLab } from './store';
 export async function addColorChart() {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Upload, FlaskConical, Trash2, Copy, Pencil, Download } from 'lucide-react';
-import { Button, Modal } from '@roveran/ui';
-import { emptyDocument } from '@roveran/pipeline';
+import { Button, Modal } from '@opencv-weblab/ui';
+import { emptyDocument } from '@opencv-weblab/pipeline';
 import { useLab } from './store';
 import { readLocal } from './persistence';
 import type { WorkspaceController } from './useWorkspaceController';
@@ -111,6 +111,7 @@ export function ProjectsDialog({ controller }: { controller: WorkspaceController
                     onClick={() => run(duplicateProject(project.id))}
                   />
                   <Button
+                    variant="danger"
                     aria-label={`Delete local project ${project.name}`}
                     icon={<Trash2 size={14} />}
                     onClick={() => {

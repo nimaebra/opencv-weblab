@@ -19,7 +19,7 @@ async function inspect(path, dependencies = true) {
   if (seen.has(path)) return;
   seen.add(path);
   const manifest = JSON.parse(await readFile(join(path, 'package.json'), 'utf8'));
-  if (!manifest.name.startsWith('@roveran/')) {
+  if (!manifest.name.startsWith('@opencv-weblab/')) {
     const files = (await readdir(path)).filter((name) =>
       /^(licen[cs]e|copying|notice)(\.|$)/i.test(name),
     );
@@ -49,7 +49,7 @@ const plugin = await locate(web, 'vite-plugin-pwa');
 await inspect(plugin, false);
 await inspect(await locate(plugin, 'workbox-window'));
 const lines = [
-  'Roveran — third-party notices',
+  'OpenCV WebLab — third-party notices',
   '',
   await readFile(join(root, 'NOTICE'), 'utf8'),
   '',

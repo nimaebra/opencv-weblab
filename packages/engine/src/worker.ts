@@ -1,5 +1,5 @@
 /// <reference lib="webworker" />
-import { OPENCV_VERSION, parseDocument } from '@roveran/pipeline';
+import { OPENCV_VERSION, parseDocument } from '@opencv-weblab/pipeline';
 import { Evaluator } from './evaluator';
 import { waitForOpenCv } from './loader';
 import type { WorkerRequest, WorkerResponse } from './index';

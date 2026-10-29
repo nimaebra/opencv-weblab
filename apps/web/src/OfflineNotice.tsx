@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button } from '@roveran/ui';
+import { Button } from '@opencv-weblab/ui';
 import { useOffline, activateUpdate } from './offline';
 import { useLab } from './store';
 import { createBackup } from './projectFiles';
@@ -30,7 +30,7 @@ export function OfflineNotice({ controller }: { controller: WorkspaceController 
     try {
       const doc = useLab.getState().document,
         snapshot = JSON.stringify(doc);
-      download(`${doc.name}.roveran.zip`, await createBackup(doc));
+      download(`${doc.name}.opencv-weblab.zip`, await createBackup(doc));
       setBackupSnapshot(snapshot);
     } catch (error) {
       useLab.getState().notify((error as Error).message);

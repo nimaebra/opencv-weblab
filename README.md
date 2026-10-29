@@ -1,8 +1,13 @@
-# Roveran
+# OpenCV WebLab
 
-An open-source OpenCV learning lab. Connect image operations, adjust their parameters, and see what happens at every step. No account, API, database or image upload is required: processing runs in a WebAssembly worker on your device.
+[![CI and Deploy](https://github.com/nimaebra/opencv-weblab/actions/workflows/ci.yml/badge.svg)](https://github.com/nimaebra/opencv-weblab/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 
-![The Roveran learning lab](docs/images/workspace.png)
+**A visual playground for learning image processing with OpenCV.** Connect image operations, adjust their parameters, and see what happens at every step. No account, API, database or image upload is required: processing runs in a WebAssembly worker on your device.
+
+**[Open OpenCV WebLab](https://nimaebra.github.io/opencv-weblab/)** · [Report a bug](https://github.com/nimaebra/opencv-weblab/issues/new/choose) · [Deployment guide](docs/deployment.md)
+
+![The OpenCV WebLab learning lab](docs/images/workspace.png)
 
 ## Start exploring
 
@@ -15,7 +20,7 @@ pnpm dev
 
 Open [localhost:5173](http://localhost:5173). The repository includes OpenCV 4.13.0, two general sample images and seven synthetic learning images; no runtime CDN is needed. Select a node to change its parameters. Click a tool to append it to the selected node, or drag it onto the graph to place it independently. Drop a single-input tool onto a connection to insert it.
 
-Roveran is for students, curious developers and people learning image processing. Its roadmap prioritizes clear explanations and reproducible experiments. It is an educational tool, with no industrial suitability or operational guarantees. The Apache-2.0 license permits commercial and industrial use.
+OpenCV WebLab is for students, curious developers and people learning image processing. Its roadmap prioritizes clear explanations and reproducible experiments. It is an educational tool, with no industrial suitability or operational guarantees. The Apache-2.0 license permits commercial and industrial use.
 
 ## Learn by experimenting
 
@@ -55,7 +60,7 @@ The viewer supports synchronized pan/zoom, side-by-side and wipe comparison, sta
 
 Projects and originals autosave to **IndexedDB in this browser and origin**. The save indicator distinguishes saved work from a temporary session or failed save. Browser data can be cleared or evicted, so download backups of work you want to keep.
 
-- **Portable backup (`.roveran.zip`)** includes the pipeline and original images. Importing creates an independent experiment with fresh project and asset identifiers.
+- **Portable backup (`.opencv-weblab.zip`)** includes the pipeline and original images. Importing creates an independent experiment with fresh project and asset identifiers.
 - **Pipeline JSON** stores the graph and logical source references. Reconnect missing images after importing it elsewhere. Existing schema-version-1 JSON remains supported.
 - **Python / OpenCV** exports a complete script with input filenames, helpers and explicit color conversions. Install the dependencies listed in its header and place the original images beside the script.
 - **PNG** exports output B at original resolution.
@@ -63,6 +68,8 @@ Projects and originals autosave to **IndexedDB in this browser and origin**. The
 Projects can be searched, renamed, duplicated and deleted in Projects. Image replacement never changes the original bytes used by another experiment. No images or projects are sent to a server. There is no analytics or telemetry in the app.
 
 ## Offline and static hosting
+
+The public app is hosted on **[GitHub Pages](https://nimaebra.github.io/opencv-weblab/)**. Pushing to `main` or publishing a GitHub release automatically runs formatting, lint, TypeScript, unit/WASM tests, Python parity and Chromium/Firefox/WebKit browser tests, then builds and deploys the site. Pull requests run validation. Published releases also receive a downloadable static-site archive and checksum. Hosting requires no secrets or paid services; see the [deployment guide](docs/deployment.md) for release, rollback and fork instructions.
 
 ```sh
 pnpm build
@@ -74,7 +81,7 @@ Deploy **`apps/web/dist`** to a static host using HTTPS (localhost also works). 
 For subdirectory hosting:
 
 ```sh
-ROVERAN_BASE_PATH=/roveran/ pnpm build
+OPENCV_WEBLAB_BASE_PATH=/opencv-weblab/ pnpm build
 ```
 
 After the first successful production visit, **Ready offline** confirms the app, fonts, samples and OpenCV runtime have been cached. It can then reopen without internet access while the browser retains that cache. Development mode does not install a service worker. An available update waits for **Save and update**; failed saves require a portable backup before reloading. Clearing site data removes both experiments and offline files.
@@ -105,9 +112,9 @@ pnpm check                    # lint, typecheck, unit/WASM tests, production bui
 pnpm format:check
 pnpm exec playwright install chromium firefox webkit
 pnpm test:e2e
-python3 -m venv /tmp/roveran-python
-/tmp/roveran-python/bin/pip install -r tests/requirements.txt
-ROVERAN_PYTHON=/tmp/roveran-python/bin/python pnpm test:parity
+python3 -m venv /tmp/opencv-weblab-python
+/tmp/opencv-weblab-python/bin/pip install -r tests/requirements.txt
+OPENCV_WEBLAB_PYTHON=/tmp/opencv-weblab-python/bin/python pnpm test:parity
 ```
 
 ## Limits and compatibility

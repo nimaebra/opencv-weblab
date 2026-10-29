@@ -8,21 +8,21 @@
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],
-      "env": ["ROVERAN_BASE_PATH"]
+      "env": ["OPENCV_WEBLAB_BASE_PATH"]
     },
     "typecheck": {
       "dependsOn": ["^typecheck"],
       "outputs": []
     },
-    "@roveran/pipeline#build": {
+    "@opencv-weblab/pipeline#build": {
       "dependsOn": ["^build"],
       "outputs": []
     },
-    "@roveran/engine#build": {
+    "@opencv-weblab/engine#build": {
       "dependsOn": ["^build"],
       "outputs": []
     },
-    "@roveran/ui#build": {
+    "@opencv-weblab/ui#build": {
       "dependsOn": ["^build"],
       "outputs": []
     }

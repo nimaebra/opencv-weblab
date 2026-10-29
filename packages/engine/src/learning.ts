@@ -1,4 +1,4 @@
-import { parameterSchema, type PipelineDocument, type PipelineNode } from '@roveran/pipeline';
+import { parameterSchema, type PipelineDocument, type PipelineNode } from '@opencv-weblab/pipeline';
 import { scaledOdd, type CV } from './operations';
 
 export type PixelExplanation = {

@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig({
-  base: process.env.ROVERAN_BASE_PATH || '/',
+  base: process.env.OPENCV_WEBLAB_BASE_PATH || '/',
   plugins: [
     react(),
     tailwindcss(),
@@ -18,8 +18,8 @@ export default defineConfig({
         'icon.svg',
       ],
       manifest: {
-        name: 'Roveran — OpenCV learning lab',
-        short_name: 'Roveran',
+        name: 'OpenCV WebLab',
+        short_name: 'OpenCV WebLab',
         description: 'Build image pipelines and understand every step. Images stay on your device.',
         theme_color: '#3f694c',
         background_color: '#f4f5f1',

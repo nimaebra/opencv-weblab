@@ -1,6 +1,6 @@
 import type { Ref, HTMLAttributes } from 'react';
-import type { NodeResult, Bounds } from '@roveran/engine';
-import type { PipelineNode } from '@roveran/pipeline';
+import type { NodeResult, Bounds } from '@opencv-weblab/engine';
+import type { PipelineNode } from '@opencv-weblab/pipeline';
 import { CanvasView } from './CanvasView';
 import type { View, Size } from './viewGeometry';
 export function PreviewFrame({

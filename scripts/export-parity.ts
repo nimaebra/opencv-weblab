@@ -20,8 +20,8 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const { cv } = await waitForOpenCv(
   createRequire(import.meta.url)(join(root, 'apps/web/public/runtime/opencv.js')),
 );
-const folder = await mkdtemp(join(tmpdir(), 'roveran-parity-'));
-const python = process.env.ROVERAN_PYTHON ?? 'python3';
+const folder = await mkdtemp(join(tmpdir(), 'opencv-weblab-parity-'));
+const python = process.env.OPENCV_WEBLAB_PYTHON ?? 'python3';
 const testCases: any[] = [];
 const rgba = cv.Mat.zeros(24, 32, cv.CV_8UC4);
 for (let y = 0; y < 24; y++)

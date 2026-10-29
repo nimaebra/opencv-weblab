@@ -18,7 +18,7 @@ body:
   - type: input
     id: environment
     attributes:
-      label: Browser, OS and Roveran version
+      label: Browser, OS and OpenCV WebLab version
     validations:
       required: true
   - type: textarea

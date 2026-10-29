@@ -2,7 +2,7 @@
 
 ## Boundaries
 
-Roveran is a static React/Vite app. There are no server APIs, accounts or image uploads.
+OpenCV WebLab is a static React/Vite app. There are no server APIs, accounts or image uploads.
 
 ```mermaid
 flowchart LR
@@ -42,11 +42,11 @@ Insertion validates both replacement connections before committing. Batch duplic
 
 ## Local persistence and portability
 
-IndexedDB `roveran` version 2 retains the original `projects`, `assets` and `settings` stores. Migration removes obsolete `cloud:*` settings without deleting graphs, blobs or `lastProject`. Project records preserve the v1 shape with an `updatedAt` field. Writes are serialized. In-memory records keep the latest session recoverable if persistence fails; UI status never treats that fallback as a successful durable save.
+IndexedDB retains the legacy database identifier `roveran` at version 2 so rebranding preserves existing experiments, together with the original `projects`, `assets` and `settings` stores. Migration removes obsolete `cloud:*` settings without deleting graphs, blobs or `lastProject`. Project records preserve the v1 shape with an `updatedAt` field. Writes are serialized. In-memory records keep the latest session recoverable if persistence fails; UI status never treats that fallback as a successful durable save.
 
 Reconnection allocates a new source ID. Garbage collection considers every saved project, session record, active history snapshot and pending image before deleting blobs. Imported images and their project are written in one transaction; failure aborts durable writes and retains session data for a backup.
 
-A `.roveran.zip` contains `manifest.json` (`format: roveran-project`, version 1), `project.json` and `assets/<sourceId>.<png|jpg|webp>`. The manifest maps logical source IDs to those entries. Already-compressed originals use ZIP STORE. Import checks entry paths, duplicates, counts and expanded sizes before decompression, then validates the document, image signatures, dimensions and references before writing. Imports get fresh project/source identifiers. Graph-only JSON stays portable independently of this container format.
+A `.opencv-weblab.zip` contains `manifest.json` (`format: opencv-weblab-project`, version 1), `project.json` and `assets/<sourceId>.<png|jpg|webp>`. Imports also accept the legacy `roveran-project` format. The manifest maps logical source IDs to those entries. Already-compressed originals use ZIP STORE. Import checks entry paths, duplicates, counts and expanded sizes before decompression, then validates the document, image signatures, dimensions and references before writing. Imports get fresh project/source identifiers. Graph-only JSON stays portable independently of this container format.
 
 ## Offline build
 

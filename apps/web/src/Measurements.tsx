@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import { Download, ScanSearch } from 'lucide-react';
-import { Button, Modal } from '@roveran/ui';
-import { measurementsCsv, type Measurements as Data, type Bounds } from '@roveran/engine';
-import type { PipelineDocument } from '@roveran/pipeline';
+import { Button, Modal } from '@opencv-weblab/ui';
+import { measurementsCsv, type Measurements as Data, type Bounds } from '@opencv-weblab/engine';
+import type { PipelineDocument } from '@opencv-weblab/pipeline';
 import { CanvasView } from './CanvasView';
 import { origin, zoomAtPoint, type View } from './viewGeometry';
 import { download } from './persistence';

@@ -1,4 +1,9 @@
-import { registry, parameterSchema, inputContract, type PipelineNode } from '@roveran/pipeline';
+import {
+  registry,
+  parameterSchema,
+  inputContract,
+  type PipelineNode,
+} from '@opencv-weblab/pipeline';
 import {
   analysisBudget,
   componentOperation,

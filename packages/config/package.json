@@ -1,5 +1,5 @@
 {
-  "name": "@roveran/config",
+  "name": "@opencv-weblab/config",
   "private": true,
   "version": "0.2.0",
   "exports": {

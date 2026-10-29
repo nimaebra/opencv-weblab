@@ -1,5 +1,5 @@
-import type { PipelineDocument, ImageMode } from '@roveran/pipeline';
-import type { PipelineNode } from '@roveran/pipeline';
+import type { PipelineDocument, ImageMode } from '@opencv-weblab/pipeline';
+import type { PipelineNode } from '@opencv-weblab/pipeline';
 import type { PixelExplanation } from './learning';
 import type { Measurements } from './measurements';
 export { measurementsCsv } from './measurements';

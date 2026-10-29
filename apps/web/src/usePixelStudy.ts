@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent } from 'react';
-import type { PipelineDocument } from '@roveran/pipeline';
+import type { PipelineDocument } from '@opencv-weblab/pipeline';
 import { useRuntime } from './runtime';
 import { useStudy, clearExplanation, requestExplanation } from './learningRuntime';
 type Runtime = ReturnType<typeof useRuntime.getState>;

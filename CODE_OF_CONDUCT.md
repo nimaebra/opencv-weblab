@@ -1,6 +1,6 @@
 # Code of Conduct
 
-Roveran welcomes learners and contributors of all backgrounds and levels of experience. Be patient with questions, explain technical feedback clearly, and criticize ideas without attacking people.
+OpenCV WebLab welcomes learners and contributors of all backgrounds and levels of experience. Be patient with questions, explain technical feedback clearly, and criticize ideas without attacking people.
 
 Expected behavior includes respectful discussion, constructive reviews, credit for others' work and care with private information. Harassment, discriminatory language, threats, unwanted sexual attention, personal attacks and publishing another person's private information are not acceptable.
 

@@ -7,11 +7,11 @@ export default defineConfig({
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173',
     trace: 'retain-on-failure',
   },
-  webServer: process.env.ROVERAN_REMOTE_TEST_SERVER
+  webServer: process.env.OPENCV_WEBLAB_REMOTE_TEST_SERVER
     ? undefined
     : [
         {
-          command: 'pnpm --filter @roveran/web dev',
+          command: 'pnpm --filter @opencv-weblab/web dev',
           url: 'http://localhost:5173',
           reuseExistingServer: !process.env.CI,
         },

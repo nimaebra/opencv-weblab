@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { BookOpen, Lightbulb, Check, ChevronDown } from 'lucide-react';
-import { lessons, lessonGuidance, type LessonKind, type PipelineDocument } from '@roveran/pipeline';
-import { Button } from '@roveran/ui';
+import {
+  lessons,
+  lessonGuidance,
+  type LessonKind,
+  type PipelineDocument,
+} from '@opencv-weblab/pipeline';
+import { Button } from '@opencv-weblab/ui';
 import { readLearningProgress, writeLearningProgress } from './persistence';
 type Progress = { version: 1; prediction: string; reflection: string; completed: number[] };
 const empty = (): Progress => ({ version: 1, prediction: '', reflection: '', completed: [] });

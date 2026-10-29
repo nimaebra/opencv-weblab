@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Name the app OpenCV WebLab across the interface, PWA, exports, packages and documentation.
+- Publish to GitHub Pages after validation on pushes to `main` and published releases.
+- Run CI in Chromium, Firefox and WebKit, and attach static-site downloads to releases.
+- Preserve existing local experiments and accept the previous portable-backup format.
+
 ## 0.2.0 — 2026-10-28
 
 - Adopt Apache-2.0 and document the educational purpose and contribution workflow.

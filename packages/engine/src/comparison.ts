@@ -1,4 +1,4 @@
-import { registry, parameterSchema } from '@roveran/pipeline';
+import { registry, parameterSchema } from '@opencv-weblab/pipeline';
 import { execute, type CV } from './operations';
 import type { WorkerRequest } from './index';
 

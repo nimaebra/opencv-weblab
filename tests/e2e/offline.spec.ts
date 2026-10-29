@@ -111,7 +111,7 @@ test('waits for a portable backup when an update cannot persist edits', async ({
   await expect(page.getByLabel('Project name')).toHaveValue('Needs a backup');
   const pending = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download backup', exact: true }).click();
-  expect((await pending).suggestedFilename()).toMatch(/\.roveran\.zip$/);
+  expect((await pending).suggestedFilename()).toMatch(/\.opencv-weblab\.zip$/);
   await expect(
     page.getByRole('button', { name: 'Reload after backup', exact: true }),
   ).toBeVisible();

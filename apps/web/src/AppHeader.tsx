@@ -4,46 +4,67 @@ import {
   Undo2,
   Redo2,
   Check,
-  ChevronDown,
+  Pencil,
   ImagePlus,
   FlaskConical,
 } from 'lucide-react';
-import { Button } from '@roveran/ui';
-import { makeExample, lessons, type LessonKind } from '@roveran/pipeline';
+import { Button } from '@opencv-weblab/ui';
+import { makeExample, lessons, type LessonKind } from '@opencv-weblab/pipeline';
 import { useLab } from './store';
 import type { WorkspaceController } from './useWorkspaceController';
 import { GuidedExperiment } from './GuidedExperiment';
+import { useState } from 'react';
+
+function ProjectName({ name }: { name: string }) {
+  const [draft, setDraft] = useState({ model: name, text: name });
+  const text = draft.model === name ? draft.text : name;
+  function rename(next: string) {
+    if (next !== useLab.getState().document.name)
+      useLab.getState().edit((doc) => ({ ...doc, name: next }), true, 'title');
+  }
+  return (
+    <input
+      aria-label="Project name"
+      title="Rename experiment"
+      maxLength={100}
+      value={text}
+      onChange={(event) => {
+        const next = event.target.value;
+        const model = next.trim() ? next : name;
+        setDraft({ model, text: next });
+        if (next.trim()) rename(next);
+      }}
+      onBlur={() => {
+        const next = text.trim() || 'Untitled experiment';
+        setDraft({ model: next, text: next });
+        rename(next);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') event.currentTarget.blur();
+      }}
+    />
+  );
+}
+
 export function AppHeader({ controller }: { controller: WorkspaceController }) {
   const { doc, past, future, saveStatus, setDialog, chooseDocument, openProjects } = controller;
 
   return (
     <>
       <header className="app-header">
-        <a className="brand" href={import.meta.env.BASE_URL} aria-label="Roveran home">
+        <a className="brand" href={import.meta.env.BASE_URL} aria-label="OpenCV WebLab home">
           <span className="brand-mark">
             <FlaskConical size={21} />
           </span>
-          roveran
+          OpenCV WebLab
           <span className="brand-divider" />
         </a>
         <div className="project-title">
-          <input
-            aria-label="Project name"
-            maxLength={100}
-            value={doc.name}
-            onChange={(e) =>
-              useLab
-                .getState()
-                .edit(
-                  (doc) => ({ ...doc, name: e.target.value || 'Untitled experiment' }),
-                  true,
-                  'title',
-                )
-            }
-          />
-          <ChevronDown size={13} />
+          <ProjectName key={doc.id} name={doc.name} />
+          <Pencil size={12} aria-hidden="true" />
           <span
             className="save-indicator"
+            role="status"
             title={
               {
                 saved: 'Saved on this device',
@@ -53,6 +74,16 @@ export function AppHeader({ controller }: { controller: WorkspaceController }) {
               }[saveStatus]
             }
           >
+            <span className="sr-only">
+              {
+                {
+                  saved: 'Saved on this device',
+                  saving: 'Saving locally',
+                  temporary: 'Temporary session — download a backup',
+                  failed: 'Save failed — download a backup',
+                }[saveStatus]
+              }
+            </span>
             {saveStatus === 'saved' ? (
               <Check size={12} />
             ) : (

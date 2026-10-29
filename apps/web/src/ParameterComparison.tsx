@@ -1,7 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { X, Columns3 } from 'lucide-react';
-import { comparisonValues, parameterSchema, registry, type PipelineNode } from '@roveran/pipeline';
-import { Button } from '@roveran/ui';
+import {
+  comparisonValues,
+  parameterSchema,
+  registry,
+  type PipelineNode,
+} from '@opencv-weblab/pipeline';
+import { Button } from '@opencv-weblab/ui';
 import { useLab } from './store';
 import { useRuntime } from './runtime';
 import {

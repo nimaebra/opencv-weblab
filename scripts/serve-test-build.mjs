@@ -5,13 +5,22 @@ import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 const nested = process.argv.includes('--nested');
 const directory = nested
-  ? await mkdtemp(join(tmpdir(), 'roveran-nested-'))
+  ? await mkdtemp(join(tmpdir(), 'opencv-weblab-nested-'))
   : resolve('apps/web/dist');
 const mount = nested ? '/lab/' : '/';
 if (nested) {
   const builder = spawn(
     'pnpm',
-    ['--filter', '@roveran/web', 'exec', 'vite', 'build', '--base=/lab/', '--outDir', directory],
+    [
+      '--filter',
+      '@opencv-weblab/web',
+      'exec',
+      'vite',
+      'build',
+      '--base=/lab/',
+      '--outDir',
+      directory,
+    ],
     { stdio: 'inherit' },
   );
   const code = await new Promise((resolve) => builder.on('exit', resolve));

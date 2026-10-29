@@ -6,7 +6,7 @@ export function generatePython(doc: PipelineDocument): string {
   const issues = validateGraph(doc);
   if (issues.length) throw new Error(issues.map((i) => i.message).join('\n'));
   const lines = [
-    `# ${doc.name.replace(/[\r\n]/g, ' ')} — exported by Roveran`,
+    `# ${doc.name.replace(/[\r\n]/g, ' ')} — exported by OpenCV WebLab`,
     `# OpenCV 4.13.x; pip install 'opencv-python>=4.13,<4.14' numpy`,
     `# Use 8-bit sRGB inputs. Browser ICC/orientation decoding may differ from cv.imread.`,
     `import cv2 as cv`,

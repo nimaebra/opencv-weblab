@@ -5,7 +5,7 @@ import {
   emptyDocument,
   executionSignature,
   type PipelineDocument,
-} from '@roveran/pipeline';
+} from '@opencv-weblab/pipeline';
 import { useLab } from './store';
 import { startRuntime, evaluate } from './runtime';
 import {
@@ -97,13 +97,13 @@ export function useWorkspaceController() {
         e.returnValue = '';
       }
     };
-    window.addEventListener('roveran-storage', storage);
-    window.addEventListener('roveran-reconnect', reconnect);
+    window.addEventListener('opencv-weblab-storage', storage);
+    window.addEventListener('opencv-weblab-reconnect', reconnect);
     window.addEventListener('beforeunload', unload);
     document.addEventListener('visibilitychange', visibility);
     return () => {
-      window.removeEventListener('roveran-storage', storage);
-      window.removeEventListener('roveran-reconnect', reconnect);
+      window.removeEventListener('opencv-weblab-storage', storage);
+      window.removeEventListener('opencv-weblab-reconnect', reconnect);
       window.removeEventListener('beforeunload', unload);
       document.removeEventListener('visibilitychange', visibility);
     };
@@ -115,6 +115,13 @@ export function useWorkspaceController() {
   }, [notice]);
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || (event.target as HTMLElement).closest('[role="dialog"]'))
+        return;
+      // Panels must also close while focus is in search or a parameter field.
+      if (event.key === 'Escape') {
+        setPanel('workspace');
+        return;
+      }
       if (
         (event.target as HTMLElement).closest(
           'input,textarea,select,[contenteditable], [role="dialog"]',
@@ -134,14 +141,13 @@ export function useWorkspaceController() {
         event.preventDefault();
         useLab.getState().duplicateSelection();
       }
-      if (event.key === '/') {
+      if (event.key === '/' && !event.metaKey && !event.ctrlKey && !event.altKey) {
         event.preventDefault();
         setPanel('tools');
         requestAnimationFrame(() =>
           document.querySelector<HTMLInputElement>('[aria-label="Find an operation"]')?.focus(),
         );
       }
-      if (event.key === 'Escape') setPanel('workspace');
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -270,7 +276,7 @@ export function useWorkspaceController() {
       if (/\.zip$/i.test(file.name) || (signature[0] === 0x50 && signature[1] === 0x4b)) {
         const imported = await readBackup(file);
         if (!(await chooseDocument(imported.document, imported.assets))) return;
-        window.dispatchEvent(new Event('roveran-assets'));
+        window.dispatchEvent(new Event('opencv-weblab-assets'));
         useLab.getState().notify('Portable experiment imported with its original images.');
       } else {
         if (file.size > 2 * 1024 * 1024)
@@ -287,7 +293,7 @@ export function useWorkspaceController() {
   async function backup() {
     try {
       const document = useLab.getState().document;
-      download(`${document.name}.roveran.zip`, await createBackup(document));
+      download(`${document.name}.opencv-weblab.zip`, await createBackup(document));
     } catch (error) {
       useLab.getState().notify((error as Error).message);
     }
@@ -296,9 +302,16 @@ export function useWorkspaceController() {
     event: React.PointerEvent<HTMLDivElement>,
     side: 'left' | 'right' | 'vertical',
   ) {
+    if (event.button !== 0 || !workspace.current) return;
     event.preventDefault();
-    const el = workspace.current!,
+    const el = workspace.current,
       bounds = el.getBoundingClientRect();
+    const preview = el.querySelector<HTMLElement>('.preview-section');
+    const minPreview = Math.max(
+      280,
+      preview ? Number.parseFloat(getComputedStyle(preview).minHeight) || 0 : 0,
+    );
+    const maxPreview = Math.max(minPreview, bounds.height - 260);
     event.currentTarget.setPointerCapture(event.pointerId);
     const move = (move: PointerEvent) => {
       if (side === 'left')
@@ -314,17 +327,19 @@ export function useWorkspaceController() {
       else
         el.style.setProperty(
           '--preview-height',
-          `${Math.max(240, Math.min(bounds.height - 210, move.clientY - bounds.top))}px`,
+          `${Math.max(minPreview, Math.min(maxPreview, move.clientY - bounds.top))}px`,
         );
     };
     const stop = () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', stop);
       window.removeEventListener('pointercancel', stop);
+      window.removeEventListener('blur', stop);
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', stop, { once: true });
     window.addEventListener('pointercancel', stop, { once: true });
+    window.addEventListener('blur', stop, { once: true });
   }
   return {
     doc,

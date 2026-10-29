@@ -144,8 +144,8 @@ test('renders the desktop and mobile workspace without horizontal overflow', asy
   if (testInfo.project.name === 'chromium')
     await page.screenshot({ path: '.impeccable/review/mobile.png', fullPage: true });
   await page.getByRole('button', { name: 'Tools', exact: true }).click();
-  await expect(page.getByRole('textbox', { name: 'Find an operation' })).toBeVisible();
-  await page.getByRole('textbox', { name: 'Find an operation' }).fill('gamma');
+  await expect(page.getByRole('searchbox', { name: 'Find an operation' })).toBeVisible();
+  await page.getByRole('searchbox', { name: 'Find an operation' }).fill('gamma');
   await page.getByRole('button', { name: /Gamma correction/ }).click();
   await page.getByRole('button', { name: 'Inspector', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Gamma correction', exact: true })).toBeVisible();

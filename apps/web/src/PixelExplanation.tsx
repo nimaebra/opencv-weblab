@@ -4,9 +4,9 @@ import {
   explanationKernel,
   previewScale,
   type PixelExplanation as Explanation,
-} from '@roveran/engine';
-import { Button } from '@roveran/ui';
-import { registry, type PipelineDocument } from '@roveran/pipeline';
+} from '@opencv-weblab/engine';
+import { Button } from '@opencv-weblab/ui';
+import { registry, type PipelineDocument } from '@opencv-weblab/pipeline';
 import { useLab } from './store';
 import { useStudy } from './learningRuntime';
 const number = (value: number) =>

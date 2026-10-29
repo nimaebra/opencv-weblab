@@ -1,5 +1,5 @@
 {
-  "name": "@roveran/engine",
+  "name": "@opencv-weblab/engine",
   "private": true,
   "version": "0.2.0",
   "type": "module",
@@ -11,7 +11,7 @@
     "build": "tsc --noEmit"
   },
   "dependencies": {
-    "@roveran/pipeline": "workspace:*"
+    "@opencv-weblab/pipeline": "workspace:*"
   },
   "devDependencies": {},
   "license": "Apache-2.0"

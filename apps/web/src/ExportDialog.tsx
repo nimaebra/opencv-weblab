@@ -1,6 +1,6 @@
 import { ArrowDownToLine, Upload, Code2, Braces, Download } from 'lucide-react';
-import { Button, Modal } from '@roveran/ui';
-import { generatePython } from '@roveran/pipeline';
+import { Button, Modal } from '@opencv-weblab/ui';
+import { generatePython } from '@opencv-weblab/pipeline';
 import { useRuntime, exportImage } from './runtime';
 import { download } from './persistence';
 import type { WorkspaceController } from './useWorkspaceController';

@@ -42,6 +42,9 @@ export function Preview() {
   return (
     <>
       <section
+        id="image-comparison"
+        role={expanded ? 'dialog' : undefined}
+        aria-modal={expanded ? true : undefined}
         className={`preview-section ${expanded ? 'preview-expanded' : ''}`}
         aria-label="Image comparison"
       >

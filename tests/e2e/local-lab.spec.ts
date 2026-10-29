@@ -81,7 +81,7 @@ test('round-trips a portable backup and creates an independent project with orig
   const pending = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Portable backup', exact: true }).click();
   const backup = await pending;
-  expect(backup.suggestedFilename()).toMatch(/\.roveran\.zip$/);
+  expect(backup.suggestedFilename()).toMatch(/\.opencv-weblab\.zip$/);
   const path = await backup.path();
   await page.getByRole('button', { name: 'Close dialog' }).click();
   await page.locator('#json-input').setInputFiles(path!);
@@ -275,7 +275,7 @@ for (const failure of ['denied', 'quota'] as const)
     );
     const downloaded = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Download backup', exact: true }).click();
-    expect((await downloaded).suggestedFilename()).toMatch(/\.roveran\.zip$/);
+    expect((await downloaded).suggestedFilename()).toMatch(/\.opencv-weblab\.zip$/);
   });
 
 test('maps pointer inspection through zoom, pan and resize on a high-DPI canvas', async ({

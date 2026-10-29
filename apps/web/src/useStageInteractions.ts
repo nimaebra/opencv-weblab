@@ -1,5 +1,5 @@
 import { useRef, type Dispatch, type SetStateAction, type HTMLAttributes } from 'react';
-import type { NodeResult } from '@roveran/engine';
+import type { NodeResult } from '@opencv-weblab/engine';
 import { samplePixel, clearPixel, useRuntime } from './runtime';
 import { origin, screenToPixel, zoomAtPoint, type View } from './viewGeometry';
 type Pixel = ReturnType<typeof useRuntime.getState>['pixel'];

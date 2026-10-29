@@ -1,5 +1,5 @@
 import { openDB } from 'idb';
-import { parseDocument, type PipelineDocument } from '@roveran/pipeline';
+import { parseDocument, type PipelineDocument } from '@opencv-weblab/pipeline';
 import { assetUrl } from './paths';
 type StoredAsset = { bytes: ArrayBuffer; type: string };
 type StoredProject = PipelineDocument & { updatedAt: number };
@@ -13,13 +13,14 @@ let storageState: StorageState = 'available';
 function report(state: StorageState) {
   storageState = state;
   if (typeof window !== 'undefined')
-    window.dispatchEvent(new CustomEvent('roveran-storage', { detail: state }));
+    window.dispatchEvent(new CustomEvent('opencv-weblab-storage', { detail: state }));
 }
 export function getStorageState() {
   return storageState;
 }
 const database = Promise.resolve()
   .then(() =>
+    // Keep the legacy database identifier to preserve existing experiments after rebranding.
     openDB('roveran', 2, {
       async upgrade(db, oldVersion, _newVersion, tx) {
         if (oldVersion < 1) {
@@ -201,7 +202,7 @@ export async function putAsset(id: string, blob: Blob) {
   } catch {
     report(storageState === 'temporary' ? 'temporary' : 'failed');
   }
-  if (typeof window !== 'undefined') window.dispatchEvent(new Event('roveran-assets'));
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('opencv-weblab-assets'));
 }
 export async function getAsset(id: string): Promise<Blob | undefined> {
   const transient = transientAssets.get(id);

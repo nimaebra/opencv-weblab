@@ -3,7 +3,7 @@ import {
   validateGraph,
   OPENCV_VERSION,
   type PipelineDocument,
-} from '@roveran/pipeline';
+} from '@opencv-weblab/pipeline';
 import { executeResult, type CV } from './operations';
 import { WORKING_BYTES, type Measurements } from './measurements';
 import type { NodeResult, EvaluationStats } from './index';

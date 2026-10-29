@@ -1,6 +1,6 @@
 import { ImagePlus } from 'lucide-react';
-import { registry, type PipelineNode } from '@roveran/pipeline';
-import { Button } from '@roveran/ui';
+import { registry, type PipelineNode } from '@opencv-weblab/pipeline';
+import { Button } from '@opencv-weblab/ui';
 import { useLab, updateParameter } from './store';
 import { NumberParameter } from './NumberParameter';
 export function OperationControls({ node }: { node: PipelineNode }) {
@@ -29,7 +29,7 @@ export function OperationControls({ node }: { node: PipelineNode }) {
         <Button
           icon={<ImagePlus size={15} />}
           onClick={() =>
-            window.dispatchEvent(new CustomEvent('roveran-reconnect', { detail: node.id }))
+            window.dispatchEvent(new CustomEvent('opencv-weblab-reconnect', { detail: node.id }))
           }
         >
           Reconnect image
@@ -46,6 +46,7 @@ export function OperationControls({ node }: { node: PipelineNode }) {
             <label htmlFor={`parameter-${parameter.key}`}>{parameter.label}</label>
             <select
               id={`parameter-${parameter.key}`}
+              aria-describedby={`parameter-${parameter.key}-help`}
               value={node.parameters[parameter.key]}
               onChange={(e) => updateParameter(node.id, parameter.key, e.target.value)}
             >
@@ -55,7 +56,7 @@ export function OperationControls({ node }: { node: PipelineNode }) {
                 </option>
               ))}
             </select>
-            <p>{parameter.description}</p>
+            <p id={`parameter-${parameter.key}-help`}>{parameter.description}</p>
           </div>
         ) : (
           <NumberParameter

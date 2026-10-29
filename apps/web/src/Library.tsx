@@ -1,27 +1,58 @@
 import { memo, useState } from 'react';
-import { Search, Plus, ChevronDown, ImagePlus, ArrowUpRight } from 'lucide-react';
-import { operations, categories } from '@roveran/pipeline';
+import { Search, Plus, ChevronDown, ImagePlus, ArrowUpRight, X } from 'lucide-react';
+import { Button } from '@opencv-weblab/ui';
+import { operations, categories } from '@opencv-weblab/pipeline';
 import { useLab } from './store';
 import { addColorChart } from './samples';
-export const Library = memo(function Library() {
+export const Library = memo(function Library({ onClose }: { onClose: () => void }) {
   const [search, setSearch] = useState('');
+  const query = search.trim().toLowerCase();
+  const matches = operations.filter(
+    (o) =>
+      o.id !== 'source' &&
+      `${o.label} ${o.fn} ${o.category} ${o.description}`.toLowerCase().includes(query),
+  );
   const add = useLab((s) => s.add);
   return (
-    <aside className="library panel" aria-label="Operation library">
+    <aside id="tools-panel" className="library panel" aria-label="Operation library">
       <div className="panel-heading">
         <h2>Tools</h2>
-        <span className="count">{operations.filter((o) => o.id !== 'source').length}</span>
+        <div className="row">
+          <span className="count" aria-label={`${matches.length} tools`}>
+            {matches.length}
+          </span>
+          <Button
+            className="panel-close"
+            aria-label="Close tools panel"
+            icon={<X size={16} />}
+            onClick={onClose}
+          />
+        </div>
       </div>
-      <label className="search">
-        <Search size={15} />
+      <div className="search">
+        <Search size={15} aria-hidden="true" />
         <input
           placeholder="Find an operation…"
           aria-label="Find an operation"
+          type="search"
+          aria-controls="tool-results"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <kbd>/</kbd>
-      </label>
+        {search ? (
+          <Button
+            className="search-clear"
+            aria-label="Clear tool search"
+            icon={<X size={14} />}
+            onClick={() => {
+              setSearch('');
+              document.querySelector<HTMLInputElement>('[aria-label="Find an operation"]')?.focus();
+            }}
+          />
+        ) : (
+          <kbd aria-hidden="true">/</kbd>
+        )}
+      </div>
       <button
         className="source-tool"
         onClick={() => document.getElementById('image-input')?.click()}
@@ -36,18 +67,15 @@ export const Library = memo(function Library() {
         Or try a color chart
         <ArrowUpRight size={12} />
       </button>
-      <div className="tool-scroll">
+      <p className="sr-only" role="status">
+        {query ? `${matches.length} matching tools` : ''}
+      </p>
+      <div id="tool-results" className="tool-scroll">
         {categories.map((category) => {
-          const items = operations.filter(
-            (o) =>
-              o.category === category &&
-              `${o.label} ${o.fn} ${o.category} ${o.description}`
-                .toLowerCase()
-                .includes(search.toLowerCase()),
-          );
+          const items = matches.filter((o) => o.category === category);
           if (!items.length) return null;
           return (
-            <details open key={category} className="tool-group">
+            <details open key={`${category}:${query}`} className="tool-group">
               <summary>
                 {category}
                 <span>
@@ -62,7 +90,7 @@ export const Library = memo(function Library() {
                   onClick={() => add(op.id)}
                   draggable
                   onDragStart={(e) => {
-                    e.dataTransfer.setData('application/roveran-operation', op.id);
+                    e.dataTransfer.setData('application/opencv-weblab-operation', op.id);
                     e.dataTransfer.effectAllowed = 'copy';
                   }}
                   title={op.description}
@@ -77,13 +105,11 @@ export const Library = memo(function Library() {
             </details>
           );
         })}
-        {!operations.some(
-          (o) =>
-            o.id !== 'source' &&
-            `${o.label} ${o.fn} ${o.category} ${o.description}`
-              .toLowerCase()
-              .includes(search.toLowerCase()),
-        ) && <p className="empty-small">No matching tools. Try “blur” or “threshold”.</p>}
+        {!matches.length && (
+          <p className="empty-small">
+            No matching tools. Try “blur” or “threshold”, or clear your search.
+          </p>
+        )}
       </div>
       <a
         className="library-footer"

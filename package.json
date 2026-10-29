@@ -1,5 +1,5 @@
 {
-  "name": "roveran",
+  "name": "opencv-weblab",
   "private": true,
   "packageManager": "pnpm@11.28.9",
   "engines": {
@@ -17,7 +17,7 @@
     "runtime:fetch": "node scripts/fetch-opencv.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "start": "pnpm --filter @roveran/web preview"
+    "start": "pnpm --filter @opencv-weblab/web preview"
   },
   "devDependencies": {
     "turbo": "^2.5.0",

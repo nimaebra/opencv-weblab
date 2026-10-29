@@ -1,4 +1,4 @@
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { forwardRef, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Slider from '@radix-ui/react-slider';
 import { X } from 'lucide-react';
@@ -8,9 +8,18 @@ export const Button = forwardRef<
     variant?: 'primary' | 'ghost' | 'danger';
     icon?: ReactNode;
   }
->(({ variant = 'ghost', icon, children, className = '', ...props }, ref) => (
-  <button ref={ref} className={`button ${variant} ${className}`} {...props}>
-    {icon}
+>(({ variant = 'ghost', icon, children, className = '', type = 'button', ...props }, ref) => (
+  <button
+    ref={ref}
+    type={type}
+    className={`button ${variant} ${icon && !children ? 'icon-only' : ''} ${className}`}
+    {...props}
+  >
+    {icon && (
+      <span className="button-icon" aria-hidden="true">
+        {icon}
+      </span>
+    )}
     {children}
   </button>
 ));
@@ -30,11 +39,23 @@ export function Modal({
   children: ReactNode;
   className?: string;
 }) {
+  const returnFocus = useRef<HTMLElement | null>(null);
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay" />
-        <Dialog.Content className={`dialog-content ${className}`}>
+        <Dialog.Content
+          className={`dialog-content ${className}`}
+          onOpenAutoFocus={() => {
+            returnFocus.current = document.activeElement as HTMLElement;
+          }}
+          onCloseAutoFocus={(event) => {
+            if (returnFocus.current?.isConnected) {
+              event.preventDefault();
+              returnFocus.current.focus({ preventScroll: true });
+            }
+          }}
+        >
           <div className="dialog-heading">
             <Dialog.Title>{title}</Dialog.Title>
             <Dialog.Close asChild>
@@ -56,6 +77,7 @@ export function Range({
   step = 1,
   onChange,
   disabled = false,
+  describedBy,
 }: {
   label: string;
   value: number;
@@ -64,6 +86,7 @@ export function Range({
   step?: number;
   onChange: (v: number) => void;
   disabled?: boolean;
+  describedBy?: string;
 }) {
   return (
     <Slider.Root
@@ -79,7 +102,7 @@ export function Range({
       <Slider.Track className="range-track">
         <Slider.Range className="range-fill" />
       </Slider.Track>
-      <Slider.Thumb aria-label={label} className="range-thumb" />
+      <Slider.Thumb aria-label={label} aria-describedby={describedBy} className="range-thumb" />
     </Slider.Root>
   );
 }

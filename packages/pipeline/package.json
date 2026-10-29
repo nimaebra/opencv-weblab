@@ -1,5 +1,5 @@
 {
-  "name": "@roveran/pipeline",
+  "name": "@opencv-weblab/pipeline",
   "private": true,
   "version": "0.2.0",
   "type": "module",

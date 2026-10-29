@@ -1,4 +1,4 @@
-import { inferDimensions } from '@roveran/pipeline';
+import { inferDimensions } from '@opencv-weblab/pipeline';
 import { useState, useRef, useEffect, useEffectEvent, useMemo } from 'react';
 import { useLab } from './store';
 import { useRuntime, analyzeOutput, clearPixel } from './runtime';
@@ -44,11 +44,59 @@ export function usePreviewController() {
   }, [doc.preview.b, revision, inspect, histogram, explain]);
   useEffect(() => {
     if (!expanded) return;
+    const section = container.current?.closest<HTMLElement>('.preview-section');
+    if (!section) return;
+    // Safari does not focus buttons on pointer clicks; keep the actual trigger.
+    const previousFocus = section.querySelector<HTMLButtonElement>(
+      '[aria-label="Collapse image viewer"]',
+    );
+    const siblings: { element: HTMLElement; inert: boolean }[] = [];
+    let current: HTMLElement = section;
+    while (current.parentElement) {
+      for (const sibling of current.parentElement.children) {
+        if (sibling !== current && sibling instanceof HTMLElement) {
+          siblings.push({ element: sibling, inert: sibling.inert });
+          sibling.inert = true;
+        }
+      }
+      current = current.parentElement;
+      if (current === document.body) break;
+    }
+    previousFocus?.focus();
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setExpanded(false);
+      if (e.defaultPrevented) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setExpanded(false);
+      }
+      if (e.key !== 'Tab') return;
+      const focusable = [
+        ...section.querySelectorAll<HTMLElement>(
+          'button, input, select, textarea, a[href], [tabindex]',
+        ),
+      ].filter(
+        (el) =>
+          el.tabIndex >= 0 &&
+          !el.matches(':disabled') &&
+          el.getClientRects().length &&
+          !el.closest('[inert]'),
+      );
+      const first = focusable[0],
+        last = focusable.at(-1);
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last?.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first?.focus();
+      }
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    section.addEventListener('keydown', handler);
+    return () => {
+      section.removeEventListener('keydown', handler);
+      for (const { element, inert } of siblings) element.inert = inert;
+      previousFocus?.focus({ preventScroll: true });
+    };
   }, [expanded]);
   const wheel = useEffectEvent((event: WheelEvent) => {
     const el = (event.target as HTMLElement).closest<HTMLElement>('.image-stage');

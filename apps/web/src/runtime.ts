@@ -6,8 +6,8 @@ import {
   type WorkerResponse,
   type WorkerRequest,
   type EvaluationStats,
-} from '@roveran/engine';
-import { executionSignature, type PipelineDocument } from '@roveran/pipeline';
+} from '@opencv-weblab/engine';
+import { executionSignature, type PipelineDocument } from '@opencv-weblab/pipeline';
 import { resolveAssets, download } from './persistence';
 import { cancelLearning, handleLearningMessage } from './learningRuntime';
 import { closeMeasurements, handleMeasurementMessage } from './measurementRuntime';
@@ -121,10 +121,10 @@ export function startRuntime() {
         analysis: null,
         pixel: null,
       });
-      window.dispatchEvent(new CustomEvent('roveran-evaluated', { detail: msg.stats }));
+      window.dispatchEvent(new CustomEvent('opencv-weblab-evaluated', { detail: msg.stats }));
     } else if (msg.type === 'exported') {
       clearTimeout(watchdog);
-      download(`${latest?.name ?? 'roveran'}.png`, msg.blob);
+      download(`${latest?.name ?? 'opencv-weblab'}.png`, msg.blob);
       useRuntime.setState({ status: 'ready', message: 'Full-resolution PNG exported' });
       if (latest) void evaluate(latest);
     } else if (msg.type === 'error') {
@@ -186,7 +186,7 @@ export function restartRuntime() {
   useRuntime.setState({ status: 'loading', message: 'Restarting OpenCV…', nodes: {}, errors: {} });
   startRuntime();
 }
-window.addEventListener('roveran-assets', () => {
+window.addEventListener('opencv-weblab-assets', () => {
   assetGeneration++;
   sourceSignature = '';
   if (latest) void evaluate(latest, true);

@@ -10,6 +10,13 @@ export default function App() {
   const controller = useWorkspaceController();
   return (
     <>
+      <a
+        className="skip-link"
+        href="#workspace-content"
+        onClick={() => controller.setPanel('workspace')}
+      >
+        Skip to workspace
+      </a>
       <AppHeader controller={controller} />
       <Workspace controller={controller} />
       <StatusBar controller={controller} />

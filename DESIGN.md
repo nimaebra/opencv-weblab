@@ -1,5 +1,5 @@
 ---
-name: Roveran
+name: OpenCV WebLab
 description: A calm contact-sheet workbench for learning image processing.
 colors:
   accent: '#3f694c'
@@ -13,6 +13,10 @@ colors:
   text: '#28382d'
   muted: '#5e6c57'
   line: '#e0e5dc'
+  control-border: '#85947d'
+  control-hover: '#e9ede4'
+  danger-surface: '#f4ebe5'
+  panel-scrim: '#17251466'
   canvas: '#f1f3ed'
   viewer: '#242a26'
   viewer-heading: '#bfc8bc'
@@ -143,13 +147,13 @@ components:
     width: 'min(660px, 94vw)'
 ---
 
-# Design System: Roveran
+# Design System: OpenCV WebLab
 
 ## Overview
 
 **Creative North Star: "The Calm Contact-Sheet Workbench"**
 
-Roveran uses warm paper chrome, botanical green controls, and deep gray image stages to make pixel changes easy to compare. The interface feels like a compact teaching lab: precise controls and measured outputs sit beside plain explanations.
+OpenCV WebLab uses warm paper chrome, botanical green controls, and deep gray image stages to make pixel changes easy to compare. The interface feels like a compact teaching lab: precise controls and measured outputs sit beside plain explanations.
 
 The implemented world is dense, with quiet separators and small changes in surface tone. Images carry the visual weight. Interface typography remains restrained; code and measurements have a distinct monospaced voice. Motion is limited to short control feedback.
 
@@ -315,3 +319,13 @@ Dialogs use a paper surface, the larger modal radius, centered constrained width
 The viewer now separates Fit and 100%, offers output-B inspection and a compact optional histogram, and uses an image-transparency checkerboard only on image stages. A/B pins can remain stable while selecting graph nodes. The existing dark stages, paper chrome, typography and category colors are retained. Learning objectives sit in a compact disclosure below the example selector.
 
 Connection editing and selection actions remain adjacent to the graph. Local project dialogs contain search, rename, duplicate and inline deletion confirmation. A persistent warm notice names storage failure and offers a portable backup; updates wait for a save or backup before reload.
+
+## Interaction and accessibility refinements
+
+Keep desktop controls compact. At widths up to 950px, use 44px minimum button and disclosure targets, 14px instructional text, and 16px text and numeric inputs. Coarse-pointer desktop controls also use 44px targets. Form boundaries use `control-border`; quiet separators keep `line`. Focus uses the existing green token, including disclosure summaries and compound search fields.
+
+Narrow-screen supporting panels have explicit close actions and a dismissible scrim. Opening a panel moves focus into it; covered workbench controls are inert until it closes. Escape also works inside fields, and closing restores the panel trigger. The expanded image viewer contains keyboard focus and returns it to its expand action. A skip link precedes the header controls.
+
+On phones, allow the document to scroll while keeping a definite workspace height of at least 820px so the graph retains its rendering area. The image preview starts at 460px, with at least 430px of space for controls, frames and captions. Parameter comparisons remain scrollable within the workbench.
+
+Resize handles move in 10px arrow-key steps, 40px with Shift, and expose their measured size; Home and End reach the limits. Parameter fields and sliders reference the same help, including their valid range. Automatic numeric corrections are announced locally. Tool search trims spaces, reveals matching groups and provides a clear action and result count. Editable project names permit an empty draft and apply the fallback only on blur.
