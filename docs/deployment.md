@@ -13,7 +13,7 @@ GitHub Pages is available free for public repositories. See GitHub's [custom wor
 Push changes to `main` to run the complete pipeline. Pull requests and pushes to other branches run validation without deploying. The workflow also runs when a GitHub release is published, or manually through **Actions → CI and Deploy → Run workflow** on `main`.
 
 1. Check formatting, lint, TypeScript, unit/WASM tests, the production build, the runtime checksum and Python/OpenCV parity.
-2. Run the browser suite in Chromium, Firefox and WebKit. This includes production service-worker updates, offline reopening, nested-path hosting, persistence, exports and accessibility checks.
+2. Run the browser suite in Chromium, Firefox and WebKit on Ubuntu 24.04. This includes production service-worker updates, offline reopening, nested-path hosting, persistence, exports and accessibility checks. Worker timing measurements are recorded per browser; a hardware-specific performance budget is optional (see [validation](validation.md)).
 3. Build `apps/web/dist` with the actual Pages base path reported by `actions/configure-pages`. Turbo includes `OPENCV_WEBLAB_BASE_PATH` in its build cache key.
 4. Upload the site and deploy it to the `github-pages` environment using GitHub's short-lived deployment token. Failed checks prevent deployment.
 5. For published releases, attach `opencv-weblab-static.tar.gz` and `SHA256SUMS` to the release after deployment succeeds. The archive is built for the Pages subdirectory shown above.
