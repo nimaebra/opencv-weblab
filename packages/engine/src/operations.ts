@@ -11,11 +11,11 @@ import {
   WORKING_BYTES,
   type OperationResult,
 } from './measurements';
+import { executeToolkit, toolkitOperations } from './toolkit';
+import { scaledOdd } from './spatial';
+export { scaledOdd } from './spatial';
 // OpenCV's generated Embind surface has no official TS declarations. Keep it at this boundary.
 export type CV = any;
-export function scaledOdd(value: number, scale: number, min = 1): number {
-  return Math.max(min, Math.round((value * scale - 1) / 2) * 2 + 1);
-}
 export function execute(cv: CV, node: PipelineNode, inputs: CV[], scale = 1): CV {
   return executeResult(cv, node, inputs, scale).mat;
 }
@@ -65,6 +65,8 @@ export function executeResult(
         : undefined,
     );
   }
+  if (toolkitOperations.has(node.operation))
+    return { mat: executeToolkit(cv, node, src, scale, availableBytes) };
   const temp: CV[] = [];
   const mat = () => {
     const m = new cv.Mat();

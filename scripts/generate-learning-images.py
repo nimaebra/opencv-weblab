@@ -49,3 +49,30 @@ save('learning-contrast.png', lambda x, y: 105 + x / 191 * 32 + (12 if (x - 96)*
 save('learning-objects.png', lambda x, y: 220 if (25 <= x < 45 and 25 <= y < 45) or (45 <= x < 65 and 45 <= y < 65) or (115 <= x < 145 and 85 <= y < 115) else 0)
 save('learning-shapes.png', lambda x, y: 255 if (48 <= x < 55 and 48 <= y < 55) or (12**2 <= (x-125)**2 + (y-110)**2 < 22**2) else 0)
 save('learning-particles.png', lambda x, y: 200 if (35 <= x < 75 and 45 <= y < 90) or (110 <= x < 150 and 105 <= y < 145) or ((x % 27 in [0, 1]) and (y % 31 in [0, 1])) else 0)
+
+def details(x, y):
+    background = 70 + x * 0.5
+    for cx, cy, radius, value in [(40, 55, 3, 65), (95, 55, 5, 65), (150, 55, 9, 65), (40, 135, 3, -60), (95, 135, 5, -60), (150, 135, 9, -60)]:
+        if (x-cx)**2 + (y-cy)**2 <= radius**2: return background + value
+    return background
+
+def geometry(x, y):
+    ring = 27**2 <= (x-130)**2 + (y-120)**2 <= 30**2
+    square = (20 <= x <= 65 and 25 <= y <= 70)
+    broken_line = abs(y-(150-x//3)) <= 1 and 10 <= x <= 85 and not 42 <= x <= 47
+    return 240 if ring or square or broken_line else 0
+
+def perspective(x, y):
+    # Invert the homography from a unit square to a symmetric trapezoid.
+    q = 115 / 157
+    a = 1 - q
+    v = (y - 30) / (169*q - 30 + a*y)
+    u = (x*(1-a*v) - 38 - (17*q-38)*v) / 115
+    if 0 <= u <= 1 and 0 <= v <= 1:
+        grid = min(abs(u-i/5) for i in range(6)) < 0.012 or min(abs(v-i/5) for i in range(6)) < 0.012
+        return 40 if grid else 220
+    return 15
+
+save('learning-details.png', details)
+save('learning-geometry.png', geometry)
+save('learning-perspective.png', perspective)

@@ -9,6 +9,7 @@ async function noise(page: Page) {
   await page.getByLabel('Example pipeline').selectOption('noise');
   await ready(page);
   await expect(page.locator('.frame-b .frame-heading')).toContainText('Gaussian blur');
+  await expect(page.locator('.frame-b .frame-caption')).toContainText('192 × 192');
 }
 test('keeps optional prediction, hints and learner-confirmed progress through rename and reload', async ({
   page,

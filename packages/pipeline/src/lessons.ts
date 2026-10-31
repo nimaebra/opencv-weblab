@@ -1,5 +1,50 @@
 export const lessons = [
   {
+    id: 'local-contrast',
+    title: 'Contrast close to home',
+    objective: 'Compare local CLAHE with global histogram equalization under uneven lighting.',
+    experiments: [
+      'Pin Equalization to A and CLAHE to B. Where does local detail become clearer?',
+      'Change the clip limit and tile counts. When does noise become stronger?',
+    ],
+  },
+  {
+    id: 'details',
+    title: 'Bright and dark details',
+    objective: 'Separate small bright and dark features from a changing background.',
+    experiments: [
+      'Compare Top-hat and Black-hat. Which spots does each retain?',
+      'Increase the kernel from 3 to 15 and compare the retained detail sizes.',
+    ],
+  },
+  {
+    id: 'rectify',
+    title: 'Straightening a skewed grid',
+    objective: 'Compare cropping a region with correcting its perspective.',
+    experiments: [
+      'Compare Crop with Perspective correction. Which changes the sloping lines?',
+      'Change one corner coordinate, then restore it with Undo.',
+    ],
+  },
+  {
+    id: 'geometry',
+    title: 'Finding image geometry',
+    objective: 'Distinguish edge segments, circles and local corners.',
+    experiments: [
+      'Pin each detector to B and compare its green annotations with its input.',
+      'Change the line gap, circle accumulator threshold or corner quality. Which detections survive?',
+    ],
+  },
+  {
+    id: 'distances',
+    title: 'Inside an object',
+    objective: 'Visualize foreground distance to background and compare distance metrics.',
+    experiments: [
+      'Compare the mask with Distance transform. Where are the brightest pixels?',
+      'Try Manhattan and chessboard distances, then compare the Color map output.',
+    ],
+  },
+  {
     id: 'edges',
     title: 'Finding the edges',
     objective: 'See how smoothing changes which edges Canny finds.',
@@ -123,6 +168,36 @@ const guidance: Record<
   LessonKind,
   { prediction: string; compare: string; hint: string; reflect: string }
 > = {
+  'local-contrast': {
+    prediction: 'Will local and global contrast changes reveal the same details?',
+    compare: 'Pin Equalization to A and CLAHE to B, then inspect their histograms.',
+    hint: 'CLAHE builds separate histograms in tiles. Clip limit restricts amplification; tile controls count regions rather than pixels.',
+    reflect: 'Which settings reveal detail without making noise distracting?',
+  },
+  details: {
+    prediction: 'Will a bright-detail filter also preserve dark spots?',
+    compare: 'Compare Top-hat with Black-hat on the same grayscale input.',
+    hint: 'Top-hat subtracts opening; Black-hat subtracts input from closing. The kernel controls the detail scale.',
+    reflect: 'Which kernel retained the spots you wanted, and what else appeared?',
+  },
+  rectify: {
+    prediction: 'Can cropping alone make converging grid lines parallel?',
+    compare: 'Compare Crop with Perspective correction and inspect the grid spacing.',
+    hint: 'Crop selects pixels. Perspective maps four source corners to a rectangular output; coordinates refer to the incoming image.',
+    reflect: 'What changed in the geometry, and how did interpolation affect the grid?',
+  },
+  geometry: {
+    prediction: 'Will lines, circles and corners describe the same parts of this image?',
+    compare: 'Pin the three detector outputs to B in turn and compare their green marks.',
+    hint: 'Hough lines need edges. Hough circles take grayscale intensities and run Canny internally. Corners measure local changes along two directions.',
+    reflect: 'Which detector best describes each shape? Which settings create false detections?',
+  },
+  distances: {
+    prediction: 'Will every foreground pixel be equally far from the background?',
+    compare: 'Compare the mask, normalized distance image and color map.',
+    hint: 'Black is background. Brightness is normalized separately for each distance image, so it is not a raw distance readout.',
+    reflect: 'How do the metric and object shape change the bright interior?',
+  },
   counting: {
     prediction: 'Do squares touching at one corner count as one object or two?',
     compare: 'Compare 4 and 8 connectivity and focus object IDs in Measurements.',

@@ -1,6 +1,7 @@
 import { registry } from './registry';
 import { topologicalOrder, validateGraph, type PipelineDocument } from './index';
 import { analysisPython } from './python-analysis';
+import { toolkitExpression, toolkitPython } from './python-toolkit';
 /** Executable source, never eval'd. Only validated numbers/enums reach expressions. */
 export function generatePython(doc: PipelineDocument): string {
   const issues = validateGraph(doc);
@@ -60,6 +61,7 @@ export function generatePython(doc: PipelineDocument): string {
     )
   )
     lines.push(analysisPython, '');
+  if (doc.nodes.some((node) => toolkitExpression(node, 'image'))) lines.push(toolkitPython, '');
   const names = new Map<string, string>();
   const ordered = topologicalOrder(doc);
   ordered.forEach((n, i) => names.set(n.id, `image_${i}`));
@@ -189,7 +191,8 @@ export function generatePython(doc: PipelineDocument): string {
           expr = `merge_images(${a}, ${b}, lambda a, b: cv.bitwise_${n.operation}(a, b))`;
           break;
         default:
-          throw new Error(`No Python generator for ${n.operation}`);
+          expr = toolkitExpression(n, a!) ?? '';
+          if (!expr) throw new Error(`No Python generator for ${n.operation}`);
       }
     if (n.enabled && ['components', 'contours'].includes(n.operation)) {
       const measurementName = `objects_${names.get(n.id)!.slice(6)}`;

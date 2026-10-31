@@ -78,27 +78,31 @@ it('checks image signatures instead of trusting MIME metadata', async () => {
     files.validateImage(new Blob(['not a picture'], { type: 'image/png' })),
   ).rejects.toThrow(/contents/);
 });
-it.each(['counting', 'shape-area', 'isolate-objects'] as const)(
-  'round-trips the %s object-analysis recipe and original fixture',
-  async (kind) => {
-    vi.stubGlobal('createImageBitmap', async () => ({ width: 192, height: 192, close() {} }));
-    const storage = await import('../apps/web/src/persistence'),
-      files = await import('../apps/web/src/projectFiles');
-    const doc = makeExample(kind),
-      source = doc.sources[0]!;
-    await storage.putAsset(
-      source.id,
-      new Blob([await readFile(`apps/web/public${source.builtin}`)], { type: 'image/png' }),
-    );
-    const result = await files.readBackup(await files.createBackup(doc));
-    expect(result.document.lessonId).toBe(kind);
-    expect(result.document.nodes.map((n) => n.operation)).toEqual(
-      doc.nodes.map((n) => n.operation),
-    );
-    expect(result.document.nodes.map((n) => n.parameters)).toEqual(
-      doc.nodes.map((n) => n.parameters),
-    );
-    expect(() => parseDocument(result.document)).not.toThrow();
-    expect(JSON.stringify(result.document)).not.toContain('measurements');
-  },
-);
+it.each([
+  'counting',
+  'shape-area',
+  'isolate-objects',
+  'local-contrast',
+  'details',
+  'rectify',
+  'geometry',
+  'distances',
+] as const)('round-trips the %s object-analysis recipe and original fixture', async (kind) => {
+  vi.stubGlobal('createImageBitmap', async () => ({ width: 192, height: 192, close() {} }));
+  const storage = await import('../apps/web/src/persistence'),
+    files = await import('../apps/web/src/projectFiles');
+  const doc = makeExample(kind),
+    source = doc.sources[0]!;
+  await storage.putAsset(
+    source.id,
+    new Blob([await readFile(`apps/web/public${source.builtin}`)], { type: 'image/png' }),
+  );
+  const result = await files.readBackup(await files.createBackup(doc));
+  expect(result.document.lessonId).toBe(kind);
+  expect(result.document.nodes.map((n) => n.operation)).toEqual(doc.nodes.map((n) => n.operation));
+  expect(result.document.nodes.map((n) => n.parameters)).toEqual(
+    doc.nodes.map((n) => n.parameters),
+  );
+  expect(() => parseDocument(result.document)).not.toThrow();
+  expect(JSON.stringify(result.document)).not.toContain('measurements');
+});

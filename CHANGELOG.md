@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add CLAHE, Crop / ROI, Perspective correction, Hough lines and circles, Top-hat, Black-hat, Shi–Tomasi corners, Distance transform and Color map (47 processing tools total).
+- Add matching Python exports, geometry dimension checks, bounded worker allocations and deterministic annotated detector outputs.
+- Add five guided experiments and three synthetic fixtures available offline (18 experiments, ten fixtures total).
+
 - Name the app OpenCV WebLab across the interface, PWA, exports, packages and documentation.
 - Publish to GitHub Pages after validation on pushes to `main` and published releases.
 - Run CI in Chromium, Firefox and WebKit, and attach static-site downloads to releases.
