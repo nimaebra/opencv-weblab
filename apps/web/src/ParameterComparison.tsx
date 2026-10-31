@@ -19,7 +19,7 @@ import {
 import { CanvasView } from './CanvasView';
 export function ComparisonButton({ node, onOpen }: { node: PipelineNode; onOpen: () => void }) {
   const def = registry[node.operation]!;
-  if (def.inputs !== 1 || node.operation === 'resize' || !def.parameters.some((p) => !p.options))
+  if (def.inputs !== 1 || def.changesDimensions || !def.parameters.some((p) => !p.options))
     return null;
   return (
     <Button

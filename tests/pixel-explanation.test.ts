@@ -102,7 +102,7 @@ it('does not pretend nonlinear or bypassed operations are weighted kernels', () 
   expect(() => explanationKernel(node, 1)).toThrow(/7 or smaller/);
 });
 it('suggests valid comparison settings without mutating operation parameters', () => {
-  for (const operation of operations.filter((o) => o.inputs === 1 && o.id !== 'resize')) {
+  for (const operation of operations.filter((o) => o.inputs === 1 && !o.changesDimensions)) {
     const node = newNode(operation.id),
       before = JSON.stringify(node);
     for (const parameter of operation.parameters.filter((p) => !p.options)) {

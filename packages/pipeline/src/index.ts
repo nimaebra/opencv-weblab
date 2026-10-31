@@ -1,4 +1,5 @@
 import { lessons, type LessonKind } from './lessons';
+import { cropBounds } from './geometry';
 import { z } from 'zod';
 import { registry, parameterSchema, defaults, inputContract, type ImageMode } from './registry';
 export * from './registry';
@@ -6,6 +7,7 @@ export * from './python';
 export * from './editing';
 export * from './lessons';
 export * from './comparisons';
+export * from './geometry';
 export const OPENCV_VERSION = '4.13.0';
 export const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 export const MAX_IMAGE_PIXELS = 4096 * 4096;
@@ -33,6 +35,9 @@ export const sourceSchema = z
         '/samples/learning-objects.png',
         '/samples/learning-shapes.png',
         '/samples/learning-particles.png',
+        '/samples/learning-details.png',
+        '/samples/learning-geometry.png',
+        '/samples/learning-perspective.png',
       ])
       .optional(),
   })
@@ -358,7 +363,78 @@ export function makeExample(kind: LessonKind = 'edges'): PipelineDocument {
     doc.edges.push({ id: crypto.randomUUID(), source: parent, target: node.id, input: 0 });
     return node;
   }
-  if (['counting', 'shape-area', 'isolate-objects'].includes(kind)) {
+  if (['local-contrast', 'details', 'rectify', 'geometry', 'distances'].includes(kind)) {
+    const fixture = (
+      {
+        'local-contrast': 'illumination',
+        details: 'details',
+        rectify: 'perspective',
+        geometry: 'geometry',
+        distances: 'shapes',
+      } as Record<string, string>
+    )[kind]!;
+    source.sourceId = `learning-${fixture}`;
+    doc.sources = [
+      {
+        id: source.sourceId,
+        name: `learning-${fixture}.png`,
+        mime: 'image/png',
+        width: 192,
+        height: 192,
+        builtin: `/samples/learning-${fixture}.png` as SourceReference['builtin'],
+      },
+    ];
+    const gray = add('grayscale', source.id, 230);
+    doc.preview.a = gray.id;
+    if (kind === 'local-contrast') {
+      doc.preview.a = add('equalize', gray.id, 460).id;
+      doc.preview.b = add('clahe', gray.id, 460, 250).id;
+    } else if (kind === 'details') {
+      const top = add('top-hat', gray.id, 460),
+        black = add('black-hat', gray.id, 460, 250);
+      top.parameters.kernel = black.parameters.kernel = 15;
+      doc.preview.a = top.id;
+      doc.preview.b = black.id;
+    } else if (kind === 'rectify') {
+      const crop = add('crop', source.id, 460),
+        perspective = add('perspective', source.id, 460, 250);
+      crop.parameters = { left: 8, top: 7, right: 92, bottom: 90 };
+      perspective.parameters = {
+        tlX: 19.9,
+        tlY: 15.7,
+        trX: 80.1,
+        trY: 15.7,
+        brX: 91.1,
+        brY: 88.5,
+        blX: 8.9,
+        blY: 88.5,
+        width: 160,
+        height: 160,
+        interpolation: 'linear',
+      };
+      doc.preview.a = crop.id;
+      doc.preview.b = perspective.id;
+    } else if (kind === 'geometry') {
+      const edges = add('canny', gray.id, 460),
+        lines = add('hough-lines', edges.id, 690);
+      lines.parameters = { votes: 25, minLength: 30, maxGap: 8 };
+      const smooth = add('median', gray.id, 460, 250);
+      smooth.parameters.kernel = 3;
+      const circles = add('hough-circles', smooth.id, 690, 250);
+      circles.parameters = {
+        minDistance: 30,
+        edgeThreshold: 100,
+        accumulator: 20,
+        minRadius: 15,
+        maxRadius: 35,
+      };
+      add('shi-tomasi', gray.id, 690, 455);
+      doc.preview.b = lines.id;
+    } else {
+      const distance = add('distance-transform', gray.id, 460);
+      doc.preview.b = add('color-map', distance.id, 690).id;
+    }
+  } else if (['counting', 'shape-area', 'isolate-objects'].includes(kind)) {
     const fixture =
       kind === 'counting' ? 'objects' : kind === 'shape-area' ? 'shapes' : 'particles';
     doc.sources = [
@@ -478,7 +554,7 @@ export function inferDimensions(
     if (node.operation === 'source') {
       const source = doc.sources.find((s) => s.id === node.sourceId);
       if (source) sizes.set(node.id, { width: source.width, height: source.height });
-    } else if (node.enabled && node.operation === 'resize')
+    } else if (node.enabled && ['resize', 'perspective'].includes(node.operation))
       sizes.set(node.id, {
         width: Number(node.parameters.width),
         height: Number(node.parameters.height),
@@ -486,7 +562,13 @@ export function inferDimensions(
     else {
       const edge = doc.edges.find((e) => e.target === node.id && e.input === 0);
       const size = edge ? sizes.get(edge.source) : undefined;
-      if (size) sizes.set(node.id, size);
+      if (size) {
+        const { width, height } =
+          node.enabled && node.operation === 'crop'
+            ? cropBounds(node.parameters, size.width, size.height)
+            : size;
+        sizes.set(node.id, { width, height });
+      }
     }
   }
   return sizes;

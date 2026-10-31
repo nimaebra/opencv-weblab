@@ -9,7 +9,7 @@ export async function compareVariants(
 ) {
   const { node, parameter, values, bitmap } = request;
   const def = registry[node.operation];
-  if (!def || def.inputs !== 1 || node.operation === 'resize' || !node.enabled)
+  if (!def || def.inputs !== 1 || def.changesDimensions || !node.enabled)
     throw new Error('Choose an enabled, single-input filter that keeps image dimensions.');
   if (!def.parameters.some((p) => p.key === parameter && !p.options) || values.length !== 3)
     throw new Error('Choose one numeric parameter and three valid values.');

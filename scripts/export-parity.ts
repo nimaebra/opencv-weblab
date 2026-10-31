@@ -42,7 +42,20 @@ try {
     const allocated: any[] = [];
     let input = rgba;
     let sourcePixels: number[] | undefined;
-    if (['components', 'contours', 'filter-objects'].includes(op.id)) {
+    if (
+      [
+        'components',
+        'contours',
+        'filter-objects',
+        'hough-lines',
+        'hough-circles',
+        'shi-tomasi',
+        'distance-transform',
+        'top-hat',
+        'black-hat',
+        'clahe',
+      ].includes(op.id)
+    ) {
       input = cv.Mat.zeros(24, 32, cv.CV_8UC4);
       allocated.push(input);
       for (let i = 3; i < input.data.length; i += 4) input.data[i] = 255;
@@ -58,6 +71,25 @@ try {
       rectangle(28, 3, 1, 1);
       rectangle(3, 16, 2, 2);
       rectangle(5, 18, 2, 2);
+      if (['hough-lines', 'hough-circles', 'shi-tomasi'].includes(op.id)) {
+        input.setTo(new cv.Scalar(0, 0, 0, 255));
+        cv.rectangle(
+          input,
+          new cv.Point(2, 2),
+          new cv.Point(9, 8),
+          new cv.Scalar(220, 220, 220, 255),
+          -1,
+        );
+        cv.circle(input, new cv.Point(23, 14), 6, new cv.Scalar(255, 255, 255, 255), 2, cv.LINE_8);
+        cv.line(
+          input,
+          new cv.Point(2, 20),
+          new cv.Point(14, 20),
+          new cv.Scalar(255, 255, 255, 255),
+          1,
+          cv.LINE_8,
+        );
+      }
       sourcePixels = [...input.data];
     }
     if (op.accepts === 'gray') {
@@ -68,6 +100,30 @@ try {
       allocated.push(input);
     }
     const node = newNode(op.id);
+    if (op.id === 'hough-lines') node.parameters = { votes: 8, minLength: 8, maxGap: 2 };
+    if (op.id === 'hough-circles')
+      node.parameters = {
+        minDistance: 10,
+        edgeThreshold: 100,
+        accumulator: 8,
+        minRadius: 3,
+        maxRadius: 8,
+      };
+    if (op.id === 'crop') node.parameters = { left: 10.5, top: 12.5, right: 83.3, bottom: 87.5 };
+    if (op.id === 'perspective')
+      node.parameters = {
+        tlX: 10,
+        tlY: 10,
+        trX: 90,
+        trY: 5,
+        brX: 95,
+        brY: 90,
+        blX: 5,
+        blY: 95,
+        width: 28,
+        height: 20,
+        interpolation: 'linear',
+      };
     if (op.id === 'components') node.parameters.connectivity = '4';
     if (op.id === 'brightness') {
       node.parameters.brightness = -25;
@@ -98,6 +154,17 @@ try {
     const result = executeResult(cv, node, [input, second]);
     const output = result.mat;
     allocated.push(output);
+    if (
+      ['hough-lines', 'hough-circles', 'shi-tomasi'].includes(op.id) &&
+      !Array.from(
+        { length: output.rows * output.cols },
+        (_, i) =>
+          output.data[i * 4] === 0 &&
+          output.data[i * 4 + 1] === 255 &&
+          output.data[i * 4 + 2] === 0,
+      ).some(Boolean)
+    )
+      throw new Error(`${op.id} parity fixture must contain a nonempty detection`);
     await writeFile(join(folder, `${op.id}.py`), generatePython(doc));
     testCases.push({
       id: op.id,

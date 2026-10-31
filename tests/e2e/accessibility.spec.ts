@@ -25,7 +25,7 @@ test('mobile drawers focus their content, dismiss from an input, and block cover
   await search.fill('gamma');
   await page.getByRole('button', { name: 'Clear tool search' }).click();
   await expect(search).toBeFocused();
-  await expect(page.locator('.tool')).toHaveCount(37);
+  await expect(page.locator('.tool')).toHaveCount(47);
   await page.getByRole('button', { name: 'Close tools panel' }).click();
   await expect(tools).toBeFocused();
 

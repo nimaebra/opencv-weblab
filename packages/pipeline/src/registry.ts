@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { cornerNames, validPerspective, type GeometryParameters } from './geometry';
 export type ImageMode = 'rgba' | 'gray';
 export type Parameter = {
   key: string;
@@ -23,6 +24,7 @@ export type OperationDefinition = {
   output: 'same' | ImageMode;
   inputContracts?: { label: string; accepts: 'any' | ImageMode }[];
   matchingModes?: boolean;
+  changesDimensions?: boolean;
   parameters: Parameter[];
   inputHelp: string;
   outputHelp: string;
@@ -699,6 +701,301 @@ operations.push(
       'Connect the original image to A and a threshold or filtered mask to B. Inspect the alpha channel of the isolated output.',
   },
 );
+operations.push(
+  op(
+    'clahe',
+    'CLAHE',
+    'Color',
+    'Enhance local grayscale contrast with contrast-limited adaptive histogram equalization. Tile counts divide the image into regions; smaller tiles can amplify noise.',
+    'cv.CLAHE',
+    [
+      number('clipLimit', 'Clip limit', 2, 0.1, 40, 'Limit local contrast amplification.', 0.1),
+      number(
+        'tilesX',
+        'Tile columns',
+        8,
+        1,
+        32,
+        'Number of tiles across the image, not tile width in pixels.',
+      ),
+      number(
+        'tilesY',
+        'Tile rows',
+        8,
+        1,
+        32,
+        'Number of tiles down the image; tile counts do not scale in previews.',
+      ),
+    ],
+    'gray',
+    'gray',
+  ),
+  {
+    ...op(
+      'crop',
+      'Crop / ROI',
+      'Geometry',
+      'Keep a rectangular region. Coordinates are percentages of this operation’s incoming image. Left/top round down and right/bottom round up to include boundary pixels.',
+      'cv.Mat.roi',
+      [
+        number('left', 'Left (%)', 0, 0, 100, 'Left boundary as a percentage of input width.', 0.1),
+        number('top', 'Top (%)', 0, 0, 100, 'Top boundary as a percentage of input height.', 0.1),
+        number(
+          'right',
+          'Right (%)',
+          100,
+          0,
+          100,
+          'Exclusive right boundary; must exceed Left.',
+          0.1,
+        ),
+        number(
+          'bottom',
+          'Bottom (%)',
+          100,
+          0,
+          100,
+          'Exclusive bottom boundary; must exceed Top.',
+          0.1,
+        ),
+      ],
+    ),
+    changesDimensions: true,
+  },
+  {
+    ...op(
+      'perspective',
+      'Perspective correction',
+      'Geometry',
+      'Rectify a convex quadrilateral into a rectangle. Enter source corners clockwise: top-left, top-right, bottom-right, bottom-left. Percentages map to incoming pixel centers.',
+      'cv.getPerspectiveTransform / cv.warpPerspective',
+      [
+        ...cornerNames.flatMap((key, i) => [
+          number(
+            `${key}X`,
+            `${['Top-left', 'Top-right', 'Bottom-right', 'Bottom-left'][i]} X (%)`,
+            i === 1 || i === 2 ? 100 : 0,
+            0,
+            100,
+            'Horizontal position in the incoming image, from left to right.',
+            0.1,
+          ),
+          number(
+            `${key}Y`,
+            `${['Top-left', 'Top-right', 'Bottom-right', 'Bottom-left'][i]} Y (%)`,
+            i >= 2 ? 100 : 0,
+            0,
+            100,
+            'Vertical position in the incoming image, from top to bottom.',
+            0.1,
+          ),
+        ]),
+        number('width', 'Width', 640, 1, 4096, 'Output width in full-resolution pixels.'),
+        number('height', 'Height', 480, 1, 4096, 'Output height in full-resolution pixels.'),
+        choice(
+          'interpolation',
+          'Interpolation',
+          'linear',
+          ['linear', 'nearest'],
+          'Use nearest for binary masks; linear blends neighboring pixels.',
+        ),
+      ],
+    ),
+    changesDimensions: true,
+  },
+  op(
+    'hough-lines',
+    'Hough line segments',
+    'Analysis',
+    'Detect straight segments in a grayscale edge or binary image, typically after Canny. Green annotations show detections; empty results retain the input appearance.',
+    'cv.HoughLinesP',
+    [
+      number(
+        'votes',
+        'Minimum votes',
+        50,
+        1,
+        1000,
+        'Minimum supporting edge pixels; votes scale with preview resolution.',
+      ),
+      number(
+        'minLength',
+        'Minimum length',
+        50,
+        0,
+        16384,
+        'Minimum segment length in full-resolution pixels.',
+      ),
+      number(
+        'maxGap',
+        'Maximum gap',
+        10,
+        0,
+        16384,
+        'Largest connected gap along a line, in full-resolution pixels.',
+      ),
+    ],
+    'gray',
+    'rgba',
+  ),
+  op(
+    'hough-circles',
+    'Hough circles',
+    'Analysis',
+    'Find circles in a grayscale intensity image. Smooth noise first. This detector runs Canny internally: connect grayscale intensities rather than a Canny edge map.',
+    'cv.HoughCircles',
+    [
+      number(
+        'minDistance',
+        'Center separation',
+        20,
+        1,
+        16384,
+        'Minimum center distance in full-resolution pixels.',
+      ),
+      number(
+        'edgeThreshold',
+        'Edge threshold',
+        100,
+        1,
+        255,
+        'Internal Canny high threshold; the low threshold is half this value.',
+      ),
+      number(
+        'accumulator',
+        'Accumulator threshold',
+        30,
+        1,
+        300,
+        'Lower values find more circles and may add false detections.',
+      ),
+      number(
+        'minRadius',
+        'Minimum radius',
+        0,
+        0,
+        16384,
+        'Smallest radius in full-resolution pixels; zero allows any minimum.',
+      ),
+      number(
+        'maxRadius',
+        'Maximum radius',
+        0,
+        0,
+        16384,
+        'Largest radius in full-resolution pixels; zero selects automatically.',
+      ),
+    ],
+    'gray',
+    'rgba',
+  ),
+  op(
+    'top-hat',
+    'Top-hat',
+    'Morphology',
+    'Subtract opening from grayscale input to highlight small bright details against an uneven background.',
+    'cv.morphologyEx',
+    morphology,
+    'gray',
+    'gray',
+  ),
+  op(
+    'black-hat',
+    'Black-hat',
+    'Morphology',
+    'Subtract grayscale input from closing to highlight small dark details against an uneven background.',
+    'cv.morphologyEx',
+    morphology,
+    'gray',
+    'gray',
+  ),
+  op(
+    'shi-tomasi',
+    'Shi–Tomasi corners',
+    'Analysis',
+    'Find strong local corners with goodFeaturesToTrack. Green markers show image features, not object identities.',
+    'cv.goodFeaturesToTrack',
+    [
+      number(
+        'maxCorners',
+        'Maximum corners',
+        100,
+        1,
+        10000,
+        'Maximum number of strongest corners to mark.',
+      ),
+      number(
+        'quality',
+        'Quality level',
+        0.01,
+        0.001,
+        1,
+        'Minimum strength relative to the strongest corner.',
+        0.001,
+      ),
+      number(
+        'minDistance',
+        'Minimum separation',
+        10,
+        1,
+        16384,
+        'Minimum corner separation in full-resolution pixels.',
+      ),
+    ],
+    'gray',
+    'rgba',
+  ),
+  op(
+    'distance-transform',
+    'Distance transform',
+    'Analysis',
+    'Visualize distance from each nonzero foreground pixel to the nearest zero background pixel. Output is normalized relative brightness, not raw distances. Requires at least one zero pixel.',
+    'cv.distanceTransform / cv.normalize',
+    [
+      choice(
+        'metric',
+        'Distance metric',
+        'euclidean',
+        ['euclidean', 'manhattan', 'chessboard'],
+        'Euclidean uses a 3×3 approximation; Manhattan follows grid steps; chessboard also allows diagonals.',
+      ),
+    ],
+    'gray',
+    'gray',
+  ),
+  op(
+    'color-map',
+    'Color map',
+    'Color',
+    'Represent grayscale intensity with false color. Colors visualize values and do not add measurement information. Output is opaque RGBA.',
+    'cv.applyColorMap',
+    [
+      choice(
+        'palette',
+        'Palette',
+        'viridis',
+        ['viridis', 'cividis', 'turbo'],
+        'Map intensity 0–255 into a fixed color palette.',
+      ),
+    ],
+    'gray',
+    'rgba',
+  ),
+);
+for (const definition of operations) {
+  if (definition.id === 'resize') definition.changesDimensions = true;
+  const pages: Record<string, string> = {
+    clahe: 'd2/d74/tutorial_js_histogram_equalization.html',
+    crop: 'de/d06/tutorial_js_basic_ops.html',
+    'hough-lines': 'd3/de6/tutorial_js_houghlines.html',
+    'hough-circles': 'd3/de5/tutorial_js_houghcircles.html',
+    'shi-tomasi': 'dd/d1a/group__imgproc__feature.html',
+    'distance-transform': 'd7/d1b/group__imgproc__misc.html',
+    'color-map': 'd3/d50/group__imgproc__colormap.html',
+  };
+  if (pages[definition.id])
+    definition.documentationUrl = `https://docs.opencv.org/4.13.0/${pages[definition.id]}`;
+}
 export function inputContract(def: OperationDefinition, input: number) {
   return def.inputContracts?.[input] ?? { label: input === 0 ? 'A' : 'B', accepts: def.accepts };
 }
@@ -730,6 +1027,30 @@ export function parameterSchema(id: string) {
     .object(shape)
     .strict()
     .superRefine((values, ctx) => {
+      if (
+        id === 'crop' &&
+        (Number(values.left) >= Number(values.right) || Number(values.top) >= Number(values.bottom))
+      )
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Crop Right must exceed Left, and Bottom must exceed Top.',
+        });
+      if (id === 'perspective' && !validPerspective(values as GeometryParameters))
+        ctx.addIssue({
+          code: 'custom',
+          message:
+            'Use distinct convex corners ordered top-left, top-right, bottom-right, bottom-left.',
+        });
+      if (
+        id === 'hough-circles' &&
+        Number(values.maxRadius) !== 0 &&
+        Number(values.maxRadius) < Number(values.minRadius)
+      )
+        ctx.addIssue({
+          code: 'custom',
+          path: ['maxRadius'],
+          message: 'Maximum radius must be zero (automatic) or at least the minimum radius.',
+        });
       if (id === 'filter-objects' && Number(values.minArea) > Number(values.maxArea))
         ctx.addIssue({
           code: 'custom',

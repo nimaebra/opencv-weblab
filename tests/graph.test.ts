@@ -16,8 +16,8 @@ import {
 } from '../packages/pipeline/src/index';
 import { scaledOdd } from '../packages/engine/src/operations';
 describe('operation catalog', () => {
-  it('defines all 37 processing operations with valid defaults', () => {
-    expect(operations.filter((o) => o.id !== 'source')).toHaveLength(37);
+  it('defines all 47 processing operations with valid defaults', () => {
+    expect(operations.filter((o) => o.id !== 'source')).toHaveLength(47);
     for (const op of operations) {
       expect(parameterSchema(op.id).safeParse(defaults(op.id)).success, op.id).toBe(true);
       expect(op.description.length).toBeGreaterThan(30);
