@@ -61,12 +61,18 @@ test('explains actual grayscale pixels and mirrored borders with keyboard inspec
   await page.getByRole('button', { name: 'Show this input in A', exact: true }).click();
   await expect(page.locator('.frame-a .frame-heading')).toContainText('Grayscale');
   await output.focus();
+  await page.mouse.move(1, 1);
+  // A stationary pointer event during focus scrolling must leave keyboard inspection active.
+  await output.dispatchEvent('pointermove', { clientX: 1, clientY: 1, pointerType: 'mouse' });
   await output.press('ArrowDown');
+  await output.dispatchEvent('pointermove', { clientX: 1, clientY: 1, pointerType: 'mouse' });
   await expect(page.locator('.calculation-result')).toContainText('output (1, 1)');
   await output.press('ArrowRight');
   await output.press('ArrowRight');
   await output.press('ArrowDown');
   await expect(page.locator('.calculation-result')).toContainText('output (3, 2)');
+  await output.hover();
+  await expect(page.locator('.calculation-result')).toContainText(/output \(9[56], 9[56]\)/);
   await page.locator('.react-flow__node').filter({ hasText: 'Gaussian blur' }).click();
   await page.getByRole('spinbutton', { name: 'Kernel size value', exact: true }).fill('15');
   await ready(page);

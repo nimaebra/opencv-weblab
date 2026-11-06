@@ -1,4 +1,4 @@
-import { useRef, type Dispatch, type SetStateAction, type HTMLAttributes } from 'react';
+import { useEffect, useRef, type Dispatch, type SetStateAction, type HTMLAttributes } from 'react';
 import type { NodeResult } from '@opencv-weblab/engine';
 import { samplePixel, clearPixel, useRuntime } from './runtime';
 import { origin, screenToPixel, zoomAtPoint, type View } from './viewGeometry';
@@ -20,6 +20,23 @@ export function useStageInteractions(
   const drag = useRef<{ x: number; y: number; vx: number; vy: number } | null>(null),
     pointers = useRef(new Map<number, { x: number; y: number }>());
   const cursor = useRef<{ nodeId: string; revision: number; x: number; y: number } | null>(null);
+  const pointer = useRef({ x: NaN, y: NaN, moved: false });
+  const keyboardInspection = useRef(false);
+  useEffect(() => {
+    function trackPointer(event: PointerEvent) {
+      const { clientX: x, clientY: y } = event;
+      const position = pointer.current;
+      position.moved = position.x !== x || position.y !== y;
+      position.x = x;
+      position.y = y;
+    }
+    window.addEventListener('pointermove', trackPointer, true);
+    window.addEventListener('pointerdown', trackPointer, true);
+    return () => {
+      window.removeEventListener('pointermove', trackPointer, true);
+      window.removeEventListener('pointerdown', trackPointer, true);
+    };
+  }, []);
   return function stageHandlers(
     slot: string,
     result: NodeResult | undefined,
@@ -52,6 +69,7 @@ export function useStageInteractions(
         if (delta) {
           event.preventDefault();
           if (inspect && slot === 'B' && result) {
+            keyboardInspection.current = true;
             const previous =
               cursor.current?.nodeId === result.nodeId && cursor.current.revision === revision
                 ? cursor.current
@@ -90,6 +108,7 @@ export function useStageInteractions(
         event.currentTarget.setPointerCapture(event.pointerId);
         pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
         if (inspect) {
+          if (slot === 'B') keyboardInspection.current = false;
           sample(event);
           return;
         }
@@ -97,7 +116,11 @@ export function useStageInteractions(
       },
       onPointerMove(event) {
         if (inspect) {
-          sample(event);
+          // WebKit can redispatch pointer movement at the same location when focus scrolls.
+          if (slot === 'B' && (!keyboardInspection.current || pointer.current.moved)) {
+            keyboardInspection.current = false;
+            sample(event);
+          }
           return;
         }
         const previous = pointers.current.get(event.pointerId);
