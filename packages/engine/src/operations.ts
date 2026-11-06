@@ -2,6 +2,7 @@ import {
   registry,
   parameterSchema,
   inputContract,
+  inputPairIssue,
   type PipelineNode,
 } from '@opencv-weblab/pipeline';
 import {
@@ -42,14 +43,19 @@ export function executeResult(
     if (contract.accepts === 'rgba' && input.channels() !== 4)
       throw new Error(`Color input required for ${contract.label}. Connect a color source.`);
   }
-  if (
-    def.inputs === 2 &&
-    (!b ||
-      b.rows !== src.rows ||
-      b.cols !== src.cols ||
-      (def.matchingModes !== false && b.type() !== src.type()))
-  )
-    throw new Error('Inputs A and B must have identical dimensions and color mode.');
+  if (def.inputs === 2) {
+    const differentModes = def.matchingModes !== false && b.type() !== src.type();
+    const issue = inputPairIssue(
+      def,
+      { width: src.cols, height: src.rows },
+      { width: b.cols, height: b.rows },
+      differentModes,
+    );
+    if (issue)
+      throw new Error(
+        scale < 1 && !differentModes ? `${issue} Try Full resolution preview.` : issue,
+      );
+  }
   if (['components', 'filter-objects', 'contours'].includes(node.operation)) {
     analysisBudget(src.rows * src.cols, availableBytes, node.operation === 'contours');
     if (node.operation === 'contours') return contourOperation(cv, src);
@@ -66,7 +72,7 @@ export function executeResult(
     );
   }
   if (toolkitOperations.has(node.operation))
-    return { mat: executeToolkit(cv, node, src, scale, availableBytes) };
+    return { mat: executeToolkit(cv, node, src, b, scale, availableBytes) };
   const temp: CV[] = [];
   const mat = () => {
     const m = new cv.Mat();

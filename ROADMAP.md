@@ -14,7 +14,11 @@ Implemented: Connected components, Contour analysis, Filter objects by area and 
 
 ## Image-tool extension
 
-Implemented: CLAHE, Crop / ROI, Perspective correction, Hough line segments, Hough circles, Top-hat, Black-hat, Shi–Tomasi corners, Distance transform and Color map. The library now has 47 processing tools and 18 guided experiments with ten synthetic fixtures. Numeric geometry controls, annotated detection images and equivalent Python exports stay local and offline. Geometry tools update dimension inference and are excluded from three-value comparisons.
+Implemented: CLAHE, Crop / ROI, Perspective correction, Hough line segments, Hough circles, Top-hat, Black-hat, Shi–Tomasi corners, Distance transform and Color map. That release brought the library to 47 processing tools and 18 guided experiments with ten synthetic fixtures. Numeric geometry controls, annotated detection images and equivalent Python exports stay local and offline. Geometry tools update dimension inference and are excluded from three-value comparisons.
+
+## Detection, restoration and frequency extension
+
+Implemented five tools for 52 total and added a template matching lesson for 19 guided experiments. Template matching accepts a smaller grayscale patch. Inpaint and Flood selection extend mask workflows, while Pad image and Fourier spectrum demonstrate borders and spatial frequencies.
 
 ## Next: publish and listen
 

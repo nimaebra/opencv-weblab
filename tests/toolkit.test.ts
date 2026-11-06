@@ -50,7 +50,7 @@ it.each([
     source.delete();
   }
 });
-it.each(['resize', 'crop', 'perspective'])(
+it.each(['resize', 'crop', 'perspective', 'pad', 'fourier-spectrum'])(
   '%s is rejected by the worker comparison guard',
   async (id) => {
     await expect(

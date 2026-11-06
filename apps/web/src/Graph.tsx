@@ -67,8 +67,12 @@ const OperationNode = memo(function OperationNode({ data, selected }: NodeProps<
       <Handle type="source" position={Position.Right} id="output" aria-label="Output" />
       {def.inputs === 2 && (
         <>
-          <span className="port-label port-a">{def.inputContracts ? 'A · Image' : 'A'}</span>
-          <span className="port-label port-b">{def.inputContracts ? 'B · Mask' : 'B'}</span>
+          <span className="port-label port-a">
+            {def.inputContracts ? `A · ${inputContract(def, 0).label}` : 'A'}
+          </span>
+          <span className="port-label port-b">
+            {def.inputContracts ? `B · ${inputContract(def, 1).label}` : 'B'}
+          </span>
         </>
       )}
     </div>

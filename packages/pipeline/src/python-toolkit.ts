@@ -1,5 +1,9 @@
 import type { PipelineNode } from './index';
-export function toolkitExpression(node: PipelineNode, input: string): string | undefined {
+export function toolkitExpression(
+  node: PipelineNode,
+  input: string,
+  second?: string,
+): string | undefined {
   const p = node.parameters;
   switch (node.operation) {
     case 'clahe':
@@ -21,6 +25,23 @@ export function toolkitExpression(node: PipelineNode, input: string): string | u
       return `distance_image(${input}, cv.DIST_${({ euclidean: 'L2', manhattan: 'L1', chessboard: 'C' } as Record<string, string>)[String(p.metric)]})`;
     case 'color-map':
       return `cv.cvtColor(cv.applyColorMap(${input}, cv.COLORMAP_${String(p.palette).toUpperCase()}), cv.COLOR_BGR2RGBA)`;
+    case 'template-match':
+      return `template_match(${input}, ${second})`;
+    case 'inpaint':
+      return `inpaint_image(${input}, ${second}, ${p.radius}, cv.INPAINT_${p.method === 'telea' ? 'TELEA' : 'NS'})`;
+    case 'flood-selection':
+      return `flood_selection(${input}, ${p.seedX}, ${p.seedY}, ${p.tolerance}, ${p.connectivity})`;
+    case 'pad': {
+      const mode =
+        p.border === 'replicate'
+          ? 'REPLICATE'
+          : p.border === 'reflect'
+            ? 'REFLECT_101'
+            : 'CONSTANT';
+      return `cv.copyMakeBorder(${input}, ${p.padding}, ${p.padding}, ${p.padding}, ${p.padding}, cv.BORDER_${mode}, value=(0, 0, 0, 255))`;
+    }
+    case 'fourier-spectrum':
+      return `fourier_spectrum(${input})`;
     default:
       return undefined;
   }
@@ -82,4 +103,42 @@ def distance_image(image, metric):
         raise ValueError("Distance transform needs at least one zero background pixel. Add a threshold or invert the mask.")
     distances = cv.distanceTransform(image, metric, 3, dstType=cv.CV_32F)
     return cv.normalize(distances, None, 0, 255, cv.NORM_MINMAX, dtype=cv.CV_8U)
+
+def template_match(image, template):
+    height, width = template.shape
+    if height > image.shape[0] or width > image.shape[1]:
+        raise ValueError("Template must fit inside the search image on both axes.")
+    response = cv.matchTemplate(image, template, cv.TM_SQDIFF)
+    _, _, (x, y), _ = cv.minMaxLoc(response)
+    output = cv.cvtColor(image, cv.COLOR_GRAY2RGBA)
+    cv.rectangle(output, (x, y), (x + width - 1, y + height - 1), (0, 255, 0, 255), 1, cv.LINE_8)
+    return output
+
+def inpaint_image(image, mask, radius, method):
+    if image.shape[:2] != mask.shape:
+        raise ValueError("Image and mask must have identical dimensions.")
+    selected = cv.countNonZero(mask)
+    if not selected: return image.copy()
+    if selected == mask.size:
+        raise ValueError("Inpaint needs some unmasked pixels. Reduce the mask coverage.")
+    if selected * (2 * radius + 1) ** 2 > 50000000:
+        raise ValueError("Inpaint needs a smaller mask or radius for this image.")
+    return color_only(image, lambda pixels: cv.inpaint(pixels, mask, radius, method))
+
+def flood_selection(image, seed_x, seed_y, tolerance, connectivity):
+    height, width = image.shape
+    seed = point(seed_x * (width - 1) / 100, seed_y * (height - 1) / 100)
+    mask = np.zeros((height + 2, width + 2), dtype=np.uint8)
+    flags = connectivity | cv.FLOODFILL_FIXED_RANGE | cv.FLOODFILL_MASK_ONLY | (255 << 8)
+    cv.floodFill(image, mask, seed, 0, loDiff=tolerance, upDiff=tolerance, flags=flags)
+    return mask[1:-1, 1:-1].copy()
+
+def fourier_spectrum(image):
+    height, width = image.shape
+    padded = cv.copyMakeBorder(image, 0, cv.getOptimalDFTSize(height) - height,
+                              0, cv.getOptimalDFTSize(width) - width, cv.BORDER_CONSTANT)
+    spectrum = cv.dft(padded.astype(np.float32), flags=cv.DFT_COMPLEX_OUTPUT)
+    real, imaginary = spectrum[:, :, 0].astype(np.float64), spectrum[:, :, 1].astype(np.float64)
+    magnitude = np.fft.fftshift(np.log1p(np.sqrt(real * real + imaginary * imaginary)).astype(np.float32))
+    return cv.normalize(magnitude, None, 0, 255, cv.NORM_MINMAX, dtype=cv.CV_8U)
 `;

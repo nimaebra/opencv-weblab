@@ -24,6 +24,7 @@ export type OperationDefinition = {
   output: 'same' | ImageMode;
   inputContracts?: { label: string; accepts: 'any' | ImageMode }[];
   matchingModes?: boolean;
+  inputDimensions?: 'template-fits';
   changesDimensions?: boolean;
   parameters: Parameter[];
   inputHelp: string;
@@ -982,6 +983,147 @@ operations.push(
     'rgba',
   ),
 );
+operations.push(
+  {
+    ...op(
+      'template-match',
+      'Template matching',
+      'Analysis',
+      'Find the patch with the smallest squared pixel difference and mark it with a green rectangle. The template is searched at its current scale and orientation.',
+      'cv.matchTemplate',
+      [],
+      'gray',
+      'rgba',
+      2,
+    ),
+    inputContracts: [
+      { label: 'Search image', accepts: 'gray' },
+      { label: 'Template', accepts: 'gray' },
+    ],
+    inputDimensions: 'template-fits',
+    inputHelp: 'A grayscale search image and a grayscale template that fits inside it.',
+    outputHelp: 'The search image in opaque RGBA with one green rectangle around the best match.',
+  },
+  {
+    ...op(
+      'inpaint',
+      'Inpaint',
+      'Restoration',
+      'Repair marked scratches or blemishes using pixels around the damaged area.',
+      'cv.inpaint',
+      [
+        number('radius', 'Radius', 3, 1, 15, 'Neighborhood radius in full-resolution pixels.'),
+        choice(
+          'method',
+          'Method',
+          'telea',
+          ['telea', 'navier-stokes'],
+          'Choose the reconstruction algorithm.',
+        ),
+      ],
+      'any',
+      'same',
+      2,
+    ),
+    inputContracts: [
+      { label: 'Image', accepts: 'any' },
+      { label: 'Mask', accepts: 'gray' },
+    ],
+    matchingModes: false,
+    inputHelp:
+      'A grayscale or RGBA image and a same-size grayscale mask. Nonzero pixels mark where to repair.',
+    outputHelp: 'The repaired image in its original color mode, with source alpha preserved.',
+  },
+  {
+    ...op(
+      'flood-selection',
+      'Flood selection',
+      'Thresholding',
+      'Select connected pixels whose intensities are within a fixed tolerance of a seed pixel.',
+      'cv.floodFill',
+      [
+        number(
+          'seedX',
+          'Seed X (%)',
+          50,
+          0,
+          100,
+          'Horizontal seed position from left to right.',
+          0.1,
+        ),
+        number(
+          'seedY',
+          'Seed Y (%)',
+          50,
+          0,
+          100,
+          'Vertical seed position from top to bottom.',
+          0.1,
+        ),
+        number(
+          'tolerance',
+          'Tolerance',
+          10,
+          0,
+          255,
+          'Maximum intensity difference from the seed pixel.',
+        ),
+        choice(
+          'connectivity',
+          'Connectivity',
+          '4',
+          ['4', '8'],
+          'Use shared sides (4) or shared sides and corners (8).',
+        ),
+      ],
+      'gray',
+      'gray',
+    ),
+    outputHelp: 'A binary mask with white selected pixels and a black background.',
+  },
+  {
+    ...op(
+      'pad',
+      'Pad image',
+      'Geometry',
+      'Add equal space on all four sides using a black border, repeated edge pixels, or reflected pixels.',
+      'cv.copyMakeBorder',
+      [
+        number(
+          'padding',
+          'Padding',
+          16,
+          0,
+          512,
+          'Border width on each side in full-resolution pixels.',
+        ),
+        choice(
+          'border',
+          'Border mode',
+          'constant',
+          ['constant', 'replicate', 'reflect'],
+          'Fill with opaque black, repeat the edge pixel, or reflect without repeating the edge pixel.',
+        ),
+      ],
+    ),
+    changesDimensions: true,
+  },
+  {
+    ...op(
+      'fourier-spectrum',
+      'Fourier spectrum',
+      'Analysis',
+      'Reveal repeating patterns and spatial frequencies with a centered Fourier magnitude visualization.',
+      'cv.dft',
+      [],
+      'gray',
+      'gray',
+    ),
+    changesDimensions: true,
+    outputHelp:
+      'A centered log-magnitude image with relative brightness scaled to 0–255. Zero padding can enlarge the output.',
+  },
+);
 for (const definition of operations) {
   if (definition.id === 'resize') definition.changesDimensions = true;
   const pages: Record<string, string> = {
@@ -992,12 +1134,41 @@ for (const definition of operations) {
     'shi-tomasi': 'dd/d1a/group__imgproc__feature.html',
     'distance-transform': 'd7/d1b/group__imgproc__misc.html',
     'color-map': 'd3/d50/group__imgproc__colormap.html',
+    'template-match': 'df/dfb/group__imgproc__object.html',
+    inpaint: 'd7/d8b/group__photo__inpaint.html',
+    'flood-selection': 'd7/d1b/group__imgproc__misc.html',
+    pad: 'dc/da3/tutorial_copyMakeBorder.html',
+    'fourier-spectrum': 'd8/d01/tutorial_discrete_fourier_transform.html',
   };
   if (pages[definition.id])
     definition.documentationUrl = `https://docs.opencv.org/4.13.0/${pages[definition.id]}`;
 }
 export function inputContract(def: OperationDefinition, input: number) {
   return def.inputContracts?.[input] ?? { label: input === 0 ? 'A' : 'B', accepts: def.accepts };
+}
+export function inputPairIssue(
+  def: OperationDefinition,
+  a: { width: number; height: number } | undefined,
+  b: { width: number; height: number } | undefined,
+  differentModes: boolean,
+) {
+  if (
+    a &&
+    b &&
+    def.inputDimensions === 'template-fits' &&
+    (b.width > a.width || b.height > a.height)
+  )
+    return 'Template must fit inside the search image on both axes.';
+  const differentSizes =
+    a &&
+    b &&
+    def.inputDimensions !== 'template-fits' &&
+    (a.width !== b.width || a.height !== b.height);
+  if (differentSizes || (def.matchingModes !== false && differentModes))
+    return def.matchingModes === false
+      ? 'Image and mask must have identical dimensions.'
+      : 'Inputs A and B must have identical dimensions and color mode.';
+  return undefined;
 }
 export const registry = Object.assign(
   Object.create(null),

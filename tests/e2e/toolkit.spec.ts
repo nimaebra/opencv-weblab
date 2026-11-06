@@ -7,6 +7,52 @@ const examples = [
   ['geometry', 'Hough line segments', '192 × 192'],
   ['distances', 'Color map', '192 × 192'],
 ] as const;
+test('discovers the expanded catalog and exports the saved template matching experiment', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await page.goto('/');
+  const search = page.getByRole('searchbox', { name: 'Find an operation' });
+  for (const [query, label] of [
+    ['matchTemplate', 'Template matching'],
+    ['inpaint', 'Inpaint'],
+    ['floodFill', 'Flood selection'],
+    ['copyMakeBorder', 'Pad image'],
+    ['fourier', 'Fourier spectrum'],
+  ] as const) {
+    await search.fill(query);
+    await expect(page.locator('.tool')).toHaveCount(1);
+    await expect(page.locator('.tool')).toContainText(label);
+  }
+  await search.fill('');
+  await page.getByLabel('Example pipeline').selectOption('template-matching');
+  const output = page.locator('.frame-b');
+  await expect(output.locator('.frame-heading')).toContainText('Template matching');
+  await expect(output.locator('.frame-caption')).toContainText('192 × 192');
+  const match = page.locator('.react-flow__node').filter({ hasText: 'Template matching' });
+  await expect(match.locator('[aria-label="Input A: Search image"]')).toBeAttached();
+  await expect(match.locator('[aria-label="Input B: Template"]')).toBeAttached();
+  await expect(match.getByText('A · Search image')).toBeVisible();
+  await expect(match.getByText('B · Template')).toBeVisible();
+  await expect(page.locator('.has-error')).toHaveCount(0);
+  await expect(page.locator('.save-indicator')).toHaveAttribute('title', 'Saved on this device');
+  await page.reload();
+  await expect(page.getByRole('textbox', { name: 'Project name' })).toHaveValue(
+    'Finding a patch in an image',
+  );
+  await expect(output.locator('.frame-caption')).toContainText('192 × 192');
+
+  const pngPending = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export full-resolution PNG', exact: true }).click();
+  const png = await readFile((await (await pngPending).path())!);
+  expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([192, 192]);
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  const pythonPending = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download Python' }).click();
+  const python = await readFile((await (await pythonPending).path())!, 'utf8');
+  expect(python).toContain('cv.matchTemplate');
+  expect(python).toContain('template_match(image_1, image_2)');
+});
 test('runs all five new examples and restores their saved graph and original source', async ({
   page,
 }) => {

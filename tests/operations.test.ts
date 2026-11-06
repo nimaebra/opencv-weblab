@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { execute } from '../packages/engine/src/operations';
 import { waitForOpenCv } from '../packages/engine/src/loader';
-import { newNode, operations } from '../packages/pipeline/src/index';
+import { inputContract, newNode, operations } from '../packages/pipeline/src/index';
 let cv: any;
 beforeAll(async () => {
   const factory = createRequire(import.meta.url)(resolve('apps/web/public/runtime/opencv.js'));
@@ -20,11 +20,11 @@ function fixture(gray = false) {
   return mat;
 }
 describe('real OpenCV WebAssembly operations', () => {
-  it.each(operations.filter((o) => o.id !== 'source').map((o) => [o.id, o.accepts] as const))(
+  it.each(operations.filter((o) => o.id !== 'source').map((op) => [op.id, op] as const))(
     'executes %s on controlled pixels',
-    (id, accepts) => {
-      const source = fixture(accepts === 'gray'),
-        second = id === 'apply-mask' ? fixture(true) : source.clone();
+    (id, op) => {
+      const source = fixture(inputContract(op, 0).accepts === 'gray'),
+        second = inputContract(op, 1).accepts === 'gray' ? fixture(true) : source.clone();
       let output: any;
       try {
         output = execute(cv, newNode(id), [source, second]);

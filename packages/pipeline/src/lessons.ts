@@ -1,5 +1,14 @@
 export const lessons = [
   {
+    id: 'template-matching',
+    title: 'Finding a patch in an image',
+    objective: 'Use a cropped template to locate a shape in a larger image.',
+    experiments: [
+      'Compare the search image with the green box around the matching square.',
+      'Move the crop around another shape and see where the match moves.',
+    ],
+  },
+  {
     id: 'local-contrast',
     title: 'Contrast close to home',
     objective: 'Compare local CLAHE with global histogram equalization under uneven lighting.',
@@ -191,6 +200,13 @@ const guidance: Record<
     compare: 'Pin the three detector outputs to B in turn and compare their green marks.',
     hint: 'Hough lines need edges. Hough circles take grayscale intensities and run Canny internally. Corners measure local changes along two directions.',
     reflect: 'Which detector best describes each shape? Which settings create false detections?',
+  },
+  'template-matching': {
+    prediction:
+      'Where will the green box appear if the template contains the square and some background?',
+    compare: 'Inspect Crop / ROI, then compare the search image and Template matching output.',
+    hint: 'The template slides over the search image. The box marks the patch with the smallest squared pixel difference. The template keeps its size and orientation.',
+    reflect: 'How did the match change when you moved or tightened the crop?',
   },
   distances: {
     prediction: 'Will every foreground pixel be equally far from the background?',

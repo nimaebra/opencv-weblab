@@ -1,7 +1,14 @@
 import { lessons, type LessonKind } from './lessons';
-import { cropBounds } from './geometry';
+import { cropBounds, optimalDftSize } from './geometry';
 import { z } from 'zod';
-import { registry, parameterSchema, defaults, inputContract, type ImageMode } from './registry';
+import {
+  registry,
+  parameterSchema,
+  defaults,
+  inputContract,
+  inputPairIssue,
+  type ImageMode,
+} from './registry';
 export * from './registry';
 export * from './python';
 export * from './editing';
@@ -196,18 +203,8 @@ export function validateGraph(doc: PipelineDocument, requireInputs = true): Grap
           const second = modes.get(inputs[1]!.source);
           const a = sizes.get(inputs[0]!.source),
             b = sizes.get(inputs[1]!.source);
-          if (
-            (def.matchingModes !== false && first && second && first !== second) ||
-            (a && b && (a.width !== b.width || a.height !== b.height))
-          )
-            issues.push({
-              nodeId: node.id,
-              code: 'mode',
-              message:
-                def.matchingModes === false
-                  ? 'Image and mask must have identical dimensions.'
-                  : 'Inputs A and B must have identical dimensions and color mode.',
-            });
+          const message = inputPairIssue(def, a, b, !!first && !!second && first !== second);
+          if (message) issues.push({ nodeId: node.id, code: 'mode', message });
         }
       }
     }
@@ -270,20 +267,17 @@ export function connect(
     if (inputs.length === 2) {
       const sizes = inferDimensions(next),
         modes = inferModes(next);
-      const first = sizes.get(inputs[0]!.source),
-        second = sizes.get(inputs[1]!.source);
-      if (
-        (def.matchingModes !== false &&
-          modes.get(inputs[0]!.source) &&
-          modes.get(inputs[1]!.source) &&
-          modes.get(inputs[0]!.source) !== modes.get(inputs[1]!.source)) ||
-        (first && second && (first.width !== second.width || first.height !== second.height))
-      )
-        throw new Error(
-          def.matchingModes === false
-            ? 'Image and mask must have identical dimensions.'
-            : 'Inputs A and B must have identical dimensions and color mode.',
-        );
+      const a = inputs[0]!.source,
+        b = inputs[1]!.source;
+      const first = modes.get(a),
+        second = modes.get(b);
+      const message = inputPairIssue(
+        def,
+        sizes.get(a),
+        sizes.get(b),
+        !!first && !!second && first !== second,
+      );
+      if (message) throw new Error(message);
     }
   }
   return next;
@@ -363,7 +357,11 @@ export function makeExample(kind: LessonKind = 'edges'): PipelineDocument {
     doc.edges.push({ id: crypto.randomUUID(), source: parent, target: node.id, input: 0 });
     return node;
   }
-  if (['local-contrast', 'details', 'rectify', 'geometry', 'distances'].includes(kind)) {
+  if (
+    ['local-contrast', 'details', 'rectify', 'geometry', 'distances', 'template-matching'].includes(
+      kind,
+    )
+  ) {
     const fixture = (
       {
         'local-contrast': 'illumination',
@@ -371,6 +369,7 @@ export function makeExample(kind: LessonKind = 'edges'): PipelineDocument {
         rectify: 'perspective',
         geometry: 'geometry',
         distances: 'shapes',
+        'template-matching': 'geometry',
       } as Record<string, string>
     )[kind]!;
     source.sourceId = `learning-${fixture}`;
@@ -414,6 +413,12 @@ export function makeExample(kind: LessonKind = 'edges'): PipelineDocument {
       };
       doc.preview.a = crop.id;
       doc.preview.b = perspective.id;
+    } else if (kind === 'template-matching') {
+      const template = add('crop', gray.id, 460, 250);
+      template.parameters = { left: 8, top: 10, right: 36, bottom: 39 };
+      const match = add('template-match', gray.id, 690);
+      doc.edges.push({ id: crypto.randomUUID(), source: template.id, target: match.id, input: 1 });
+      doc.preview.b = match.id;
     } else if (kind === 'geometry') {
       const edges = add('canny', gray.id, 460),
         lines = add('hough-lines', edges.id, 690);
@@ -563,11 +568,16 @@ export function inferDimensions(
       const edge = doc.edges.find((e) => e.target === node.id && e.input === 0);
       const size = edge ? sizes.get(edge.source) : undefined;
       if (size) {
-        const { width, height } =
-          node.enabled && node.operation === 'crop'
-            ? cropBounds(node.parameters, size.width, size.height)
-            : size;
-        sizes.set(node.id, { width, height });
+        const { width, height } = size;
+        if (node.enabled && node.operation === 'crop') {
+          const bounds = cropBounds(node.parameters, width, height);
+          sizes.set(node.id, { width: bounds.width, height: bounds.height });
+        } else if (node.enabled && node.operation === 'pad') {
+          const padding = Number(node.parameters.padding) * 2;
+          sizes.set(node.id, { width: width + padding, height: height + padding });
+        } else if (node.enabled && node.operation === 'fourier-spectrum') {
+          sizes.set(node.id, { width: optimalDftSize(width), height: optimalDftSize(height) });
+        } else sizes.set(node.id, size);
       }
     }
   }

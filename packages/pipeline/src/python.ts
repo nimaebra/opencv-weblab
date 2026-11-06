@@ -191,7 +191,7 @@ export function generatePython(doc: PipelineDocument): string {
           expr = `merge_images(${a}, ${b}, lambda a, b: cv.bitwise_${n.operation}(a, b))`;
           break;
         default:
-          expr = toolkitExpression(n, a!) ?? '';
+          expr = toolkitExpression(n, a!, b) ?? '';
           if (!expr) throw new Error(`No Python generator for ${n.operation}`);
       }
     if (n.enabled && ['components', 'contours'].includes(n.operation)) {
