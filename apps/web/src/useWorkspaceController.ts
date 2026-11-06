@@ -131,7 +131,7 @@ export function useWorkspaceController() {
       }
       if (
         (event.target as HTMLElement).closest(
-          'input,textarea,select,[contenteditable], [role="dialog"]',
+          'input,textarea,[role="combobox"],[role="listbox"],[contenteditable]',
         )
       )
         return;

@@ -6,7 +6,7 @@ import {
   ArrowDownToLine,
   ArrowLeftRight,
 } from 'lucide-react';
-import { Button } from '@opencv-weblab/ui';
+import { Button, Select } from '@opencv-weblab/ui';
 import { useLab } from './store';
 import { exportImage } from './runtime';
 import type { usePreviewController } from './usePreviewController';
@@ -81,23 +81,24 @@ export function PreviewToolbar({
                 );
             }}
           />
-          <select
+          <Select
             aria-label="Preview quality"
             className="quality-select"
             value={doc.preview.quality}
-            onChange={(e) =>
+            options={[
+              { value: 'auto', label: 'Auto' },
+              { value: 'full', label: 'Full' },
+            ]}
+            onValueChange={(value) =>
               useLab.getState().edit(
                 (d) => ({
                   ...d,
-                  preview: { ...d.preview, quality: e.target.value as 'auto' | 'full' },
+                  preview: { ...d.preview, quality: value as 'auto' | 'full' },
                 }),
                 false,
               )
             }
-          >
-            <option value="auto">Auto</option>
-            <option value="full">Full</option>
-          </select>
+          />
           <Button
             aria-label={expanded ? 'Collapse image viewer' : 'Expand image viewer'}
             title={expanded ? 'Collapse viewer (Esc)' : 'Expand viewer'}

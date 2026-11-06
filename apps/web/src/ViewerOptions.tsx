@@ -1,5 +1,5 @@
 import { Minus, Plus, Maximize, Hand, Scan, BarChart3, Lightbulb } from 'lucide-react';
-import { Button } from '@opencv-weblab/ui';
+import { Button, Checkbox } from '@opencv-weblab/ui';
 import { useLab } from './store';
 import { origin } from './viewGeometry';
 import type { usePreviewController } from './usePreviewController';
@@ -22,23 +22,18 @@ export function ViewerOptions({ controller }: { controller: Controller }) {
     <div className="viewer-options">
       <div className="viewer-flags" role="group" aria-label="Preview settings">
         <label>
-          <input
-            type="checkbox"
+          <Checkbox
             checked={follow}
             onChange={(e) => useLab.getState().setFollowSelection(e.target.checked)}
-          />{' '}
+          />
           B follows selection
         </label>
         <label>
-          <input type="checkbox" checked={checker} onChange={(e) => setChecker(e.target.checked)} />{' '}
+          <Checkbox checked={checker} onChange={(e) => setChecker(e.target.checked)} />
           Transparency
         </label>
         <label>
-          <input
-            type="checkbox"
-            checked={pixelated}
-            onChange={(e) => setPixelated(e.target.checked)}
-          />{' '}
+          <Checkbox checked={pixelated} onChange={(e) => setPixelated(e.target.checked)} />
           Crisp pixels
         </label>
       </div>

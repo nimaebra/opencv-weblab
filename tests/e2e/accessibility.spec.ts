@@ -190,3 +190,54 @@ test('touch controls and long project names fit phone and landscape layouts', as
   const graph = await page.locator('.react-flow').boundingBox();
   expect(graph!.height).toBeGreaterThanOrEqual(160);
 });
+
+test('selects support typeahead and restore focus inside the expanded viewer', async ({ page }) => {
+  await page.goto('/');
+  const examples = page.getByRole('combobox', { name: 'Example pipeline' });
+  await examples.press('ArrowDown');
+  await expect(page.getByRole('listbox')).toBeVisible();
+  await page.keyboard.press('w');
+  await expect(page.getByRole('option', { name: 'What sharpening changes' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(examples).toBeFocused();
+  await expect(examples).toHaveAttribute('aria-expanded', 'false');
+
+  await page.getByRole('button', { name: 'Expand image viewer' }).click();
+  const viewer = page.getByRole('dialog', { name: 'Image comparison' });
+  const quality = viewer.getByRole('combobox', { name: 'Preview quality' });
+  await quality.press('Enter');
+  await expect(viewer.getByRole('option', { name: 'Auto', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await page.keyboard.press('Escape');
+  await expect(viewer).toBeVisible();
+  await expect(quality).toBeFocused();
+  await quality.press('Enter');
+  await expect(viewer.getByRole('option', { name: 'Auto', exact: true })).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await expect(viewer.getByRole('option', { name: 'Full', exact: true })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(quality).toBeFocused();
+  await expect(quality).toHaveText('Full');
+});
+
+test('mobile inspector options escape the scrolling panel and dismiss independently', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/');
+  const inspector = page.getByRole('button', { name: 'Inspector', exact: true });
+  await inspector.click();
+  await page.getByRole('button', { name: 'Inspect output B', exact: true }).click();
+  const from = page.getByRole('combobox', { name: 'From node', exact: true });
+  await from.click();
+  const popup = page.getByRole('listbox');
+  await expect(popup.getByRole('option', { name: 'Grayscale', exact: true })).toBeVisible();
+  const box = await popup.boundingBox();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(375);
+  await page.keyboard.press('Escape');
+  await expect(from).toBeFocused();
+  await expect(inspector).toHaveAttribute('aria-expanded', 'true');
+});

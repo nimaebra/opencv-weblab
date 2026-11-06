@@ -21,7 +21,7 @@ import {
   inputContract,
   inferModes,
 } from '@opencv-weblab/pipeline';
-import { Button } from '@opencv-weblab/ui';
+import { Button, Select, Switch, TextInput } from '@opencv-weblab/ui';
 import { useLab, insertGrayscale } from './store';
 import { useRuntime } from './runtime';
 export const Inspector = memo(function Inspector({
@@ -135,7 +135,7 @@ export const Inspector = memo(function Inspector({
         </div>
         <label className="field">
           Node name
-          <input
+          <TextInput
             aria-label="Node name"
             maxLength={100}
             value={node.label}
@@ -147,9 +147,7 @@ export const Inspector = memo(function Inspector({
         {node.operation !== 'source' && (
           <label className="toggle-row">
             <span>Enable operation</span>
-            <input
-              type="checkbox"
-              role="switch"
+            <Switch
               checked={node.enabled}
               onChange={(e) => useLab.getState().update(node.id, { enabled: e.target.checked })}
             />
@@ -222,24 +220,31 @@ export const Inspector = memo(function Inspector({
             </h4>
             <label className="field">
               From node
-              <select value={from} onChange={(e) => setFrom(e.target.value)}>
-                <option value="">Choose an upstream node</option>
-                {doc.nodes
-                  .filter((n) => n.id !== node.id)
-                  .map((n) => (
-                    <option key={n.id} value={n.id}>
-                      {n.label}
-                    </option>
-                  ))}
-              </select>
+              <Select
+                aria-label="From node"
+                value={from}
+                placeholder="Choose an upstream node"
+                options={[
+                  { value: '', label: 'Choose an upstream node' },
+                  ...doc.nodes
+                    .filter((candidate) => candidate.id !== node.id)
+                    .map((candidate) => ({ value: candidate.id, label: candidate.label })),
+                ]}
+                onValueChange={setFrom}
+              />
             </label>
             {def.inputs === 2 && (
               <label className="field">
                 To input
-                <select value={input} onChange={(e) => setInput(Number(e.target.value))}>
-                  <option value={0}>A · {inputContract(def, 0).label}</option>
-                  <option value={1}>B · {inputContract(def, 1).label}</option>
-                </select>
+                <Select
+                  aria-label="To input"
+                  value={String(input)}
+                  options={[
+                    { value: '0', label: `A · ${inputContract(def, 0).label}` },
+                    { value: '1', label: `B · ${inputContract(def, 1).label}` },
+                  ]}
+                  onValueChange={(value) => setInput(Number(value))}
+                />
               </label>
             )}
             <Button

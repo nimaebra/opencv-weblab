@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { chooseOption } from './select';
 import { makeExample, newNode, connect } from '../../packages/pipeline/src/index';
 import { resolve } from 'node:path';
 import { mkdir } from 'node:fs/promises';
@@ -65,8 +66,7 @@ test('adds, duplicates, bypasses, undoes, and connects from the inspector', asyn
   await page.locator('.history-actions').getByRole('button', { name: 'Undo', exact: true }).click();
   await expect(page.locator('.react-flow__node')).toHaveCount(5);
   await page.locator('.react-flow__node').filter({ hasText: 'Invert' }).click();
-  const from = page.getByLabel('From node');
-  await from.selectOption({ label: 'Grayscale' });
+  await chooseOption(page, 'From node', 'Grayscale');
   await page.getByRole('button', { name: 'Connect', exact: true }).click();
   await ready(page);
   await expect(page.locator('.node-meta').last()).toContainText('GRAY');
@@ -111,7 +111,7 @@ test('prevents invalid cycles and leaves disconnected errors visible', async ({ 
   await page.goto('/');
   await ready(page);
   await page.locator('.react-flow__node').filter({ hasText: 'Grayscale' }).click();
-  await page.getByLabel('From node').selectOption({ label: 'Canny edges' });
+  await chooseOption(page, 'From node', 'Canny edges');
   await page.getByRole('button', { name: 'Connect', exact: true }).click();
   await expect(page.locator('.toast')).toContainText('cycles');
   await expect(page.locator('.react-flow__node')).toHaveCount(4);
@@ -133,11 +133,16 @@ test('supports a branch merge and full-resolution preview without errors', async
   await expect(page.locator('.react-flow__node')).toHaveCount(6);
   await ready(page);
   await expect(page.locator('.has-error')).toHaveCount(0);
-  await page.getByLabel('Preview quality').selectOption('full');
+  await chooseOption(page, 'Preview quality', 'Full');
   await ready(page);
   await expect(page.getByText('Full-resolution preview · exact parameters')).toBeVisible();
   await page.getByRole('button', { name: 'Wipe comparison', exact: true }).click();
-  await expect(page.getByRole('slider', { name: 'Comparison wipe position' })).toBeVisible();
+  const wipe = page.getByRole('slider', { name: 'Comparison wipe position' });
+  await expect(wipe).toBeVisible();
+  await wipe.press('End');
+  await expect(wipe).toHaveAttribute('aria-valuenow', '100');
+  await wipe.press('ArrowLeft');
+  await expect(wipe).toHaveAttribute('aria-valuenow', '99');
 });
 test('keeps the editor functional when the API is offline', async ({ page }) => {
   await page.route('**/api/**', (route) => route.abort());

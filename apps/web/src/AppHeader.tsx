@@ -9,7 +9,7 @@ import {
   FlaskConical,
   BookOpen,
 } from 'lucide-react';
-import { Button } from '@opencv-weblab/ui';
+import { Button, Select, TextInput } from '@opencv-weblab/ui';
 import { makeExample, lessons, type LessonKind } from '@opencv-weblab/pipeline';
 import { useLab } from './store';
 import type { WorkspaceController } from './useWorkspaceController';
@@ -24,7 +24,8 @@ function ProjectName({ name }: { name: string }) {
       useLab.getState().edit((doc) => ({ ...doc, name: next }), true, 'title');
   }
   return (
-    <input
+    <TextInput
+      unstyled
       aria-label="Project name"
       title="Rename experiment"
       maxLength={100}
@@ -117,24 +118,18 @@ export function AppHeader({ controller }: { controller: WorkspaceController }) {
             <BookOpen size={15} aria-hidden="true" />
             Example pipelines
           </label>
-          <select
+          <Select
             id="examples"
             aria-label="Example pipeline"
             value=""
-            onChange={(e) => {
-              if (e.target.value)
-                void chooseDocument(makeExample(e.target.value as LessonKind)).catch((error) =>
-                  useLab.getState().notify(error.message),
-                );
+            placeholder="Choose an example"
+            options={lessons.map((lesson) => ({ value: lesson.id, label: lesson.title }))}
+            onValueChange={(value) => {
+              void chooseDocument(makeExample(value as LessonKind)).catch((error) =>
+                useLab.getState().notify(error.message),
+              );
             }}
-          >
-            <option value="">Choose an example</option>
-            {lessons.map((lesson) => (
-              <option key={lesson.id} value={lesson.id}>
-                {lesson.title}
-              </option>
-            ))}
-          </select>
+          />
         </div>
         <Button
           icon={<ImagePlus size={15} />}

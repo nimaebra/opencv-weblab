@@ -1,3 +1,4 @@
+import { Range } from '@opencv-weblab/ui';
 import { usePreviewMeasurements, FullMeasurements } from './Measurements';
 import { PreviewToolbar } from './PreviewToolbar';
 import { PreviewFrame } from './PreviewFrame';
@@ -101,14 +102,13 @@ export function Preview() {
           {wiping && (
             <>
               <div className="wipe-line" style={{ left: `${wipe}%` }} />
-              <input
+              <Range
                 className="wipe-slider"
-                type="range"
-                aria-label="Comparison wipe position"
+                label="Comparison wipe position"
                 min={0}
                 max={100}
                 value={wipe}
-                onChange={(e) => setWipe(Number(e.target.value))}
+                onChange={setWipe}
               />
             </>
           )}

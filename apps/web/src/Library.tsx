@@ -1,6 +1,6 @@
 import { memo, useState } from 'react';
 import { Search, Plus, ChevronDown, ImagePlus, ArrowUpRight, X } from 'lucide-react';
-import { Button } from '@opencv-weblab/ui';
+import { Button, TextInput } from '@opencv-weblab/ui';
 import { operations, categories } from '@opencv-weblab/pipeline';
 import { useLab } from './store';
 import { addColorChart } from './samples';
@@ -31,7 +31,8 @@ export const Library = memo(function Library({ onClose }: { onClose: () => void 
       </div>
       <div className="search">
         <Search size={15} aria-hidden="true" />
-        <input
+        <TextInput
+          unstyled
           placeholder="Find an operation…"
           aria-label="Find an operation"
           type="search"

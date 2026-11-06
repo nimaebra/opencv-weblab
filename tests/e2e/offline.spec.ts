@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { chooseExample } from './select';
 test('loads the synthetic experiments and learning worker without a network', async ({
   page,
   context,
@@ -8,7 +9,7 @@ test('loads the synthetic experiments and learning worker without a network', as
   await page.reload();
   await expect(page.locator('.status-dot.ready')).toBeVisible({ timeout: 30000 });
   await context.setOffline(true);
-  await page.getByLabel('Example pipeline').selectOption('noise');
+  await chooseExample(page, 'noise');
   await expect(page.locator('.frame-b .frame-heading')).toContainText('Gaussian blur');
   await expect(page.locator('.frame-b .frame-caption')).toContainText('192 × 192');
   await page.getByRole('button', { name: 'Explain a pixel', exact: true }).click();
@@ -23,7 +24,7 @@ test('loads the synthetic experiments and learning worker without a network', as
     'shape-area',
     'isolate-objects',
   ]) {
-    await page.getByLabel('Example pipeline').selectOption(kind);
+    await chooseExample(page, kind);
     await expect(page.locator('.frame-b .frame-caption')).toContainText('192 × 192');
     await expect(page.locator('.status-dot.ready')).toBeVisible();
   }
@@ -53,17 +54,17 @@ for (const url of ['http://localhost:4173/', 'http://127.0.0.1:4174/lab/'])
       page.getByRole('button', { name: 'Export full-resolution PNG', exact: true }),
     ).toBeEnabled({ timeout: 30000 });
     for (const kind of ['local-contrast', 'details', 'rectify', 'geometry', 'distances']) {
-      await page.getByLabel('Example pipeline').selectOption(kind);
+      await chooseExample(page, kind);
       await expect(page.locator('.frame-b .frame-caption')).toContainText(
         kind === 'rectify' ? '160 × 160' : '192 × 192',
       );
       await expect(page.locator('.has-error')).toHaveCount(0);
     }
-    await page.getByLabel('Example pipeline').selectOption('template-matching');
+    await chooseExample(page, 'template-matching');
     await expect(page.locator('.frame-b .frame-heading')).toContainText('Template matching');
     await expect(page.locator('.frame-b .frame-caption')).toContainText('192 × 192');
     await expect(page.locator('.has-error')).toHaveCount(0);
-    await page.getByLabel('Example pipeline').selectOption('counting');
+    await chooseExample(page, 'counting');
     await page.locator('.measurements-panel > summary').click();
     await page.getByRole('button', { name: 'Measure full resolution / CSV', exact: true }).click();
     await expect(page.getByRole('dialog').locator('caption')).toContainText(

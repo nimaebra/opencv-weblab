@@ -6,7 +6,7 @@ import {
   registry,
   type PipelineNode,
 } from '@opencv-weblab/pipeline';
-import { Button } from '@opencv-weblab/ui';
+import { Button, Select, TextInput } from '@opencv-weblab/ui';
 import { useLab } from './store';
 import { useRuntime } from './runtime';
 import {
@@ -78,20 +78,18 @@ function ComparisonPanel({ node }: { node: PipelineNode }) {
       </p>
       <label className="comparison-parameter">
         Parameter{' '}
-        <select
+        <Select
           aria-label="Comparison parameter"
           value={key}
-          onChange={(e) => {
+          options={parameters.map((parameter) => ({
+            value: parameter.key,
+            label: parameter.label,
+          }))}
+          onValueChange={(value) => {
             cancelComparison();
-            setKey(e.target.value);
+            setKey(value);
           }}
-        >
-          {parameters.map((p) => (
-            <option key={p.key} value={p.key}>
-              {p.label}
-            </option>
-          ))}
-        </select>
+        />
       </label>
       <ComparisonForm key={key} node={node} parameterKey={key} />
     </section>
@@ -126,7 +124,7 @@ function ComparisonForm({ node, parameterKey }: { node: PipelineNode; parameterK
         {(['first', 'second', 'third'] as const).map((slot, index) => (
           <label key={slot}>
             Value {index + 1}
-            <input
+            <TextInput
               aria-label={`Comparison value ${index + 1}`}
               type="number"
               min={parameter.min}

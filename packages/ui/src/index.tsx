@@ -8,6 +8,9 @@ import {
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Slider from '@radix-ui/react-slider';
 import { X } from 'lucide-react';
+
+export { Select } from './Select';
+export { Checkbox, Switch, TextArea, TextInput } from './Fields';
 export const Button = forwardRef<
   HTMLButtonElement,
   ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -111,6 +114,7 @@ export function Range({
   onChange,
   disabled = false,
   describedBy,
+  className = '',
 }: {
   label: string;
   value: number;
@@ -120,11 +124,12 @@ export function Range({
   onChange: (v: number) => void;
   disabled?: boolean;
   describedBy?: string;
+  className?: string;
 }) {
   return (
     <Slider.Root
       aria-label={label}
-      className="range"
+      className={`range ${className}`}
       value={[value]}
       min={min}
       max={max}

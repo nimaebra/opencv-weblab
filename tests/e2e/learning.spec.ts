@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { chooseExample } from './select';
 import { newNode } from '../../packages/pipeline/src/index';
 async function ready(page: Page) {
   await expect(page.locator('.status-dot.ready')).toBeVisible({ timeout: 30000 });
@@ -6,7 +7,7 @@ async function ready(page: Page) {
 async function noise(page: Page) {
   await page.goto('/');
   await ready(page);
-  await page.getByLabel('Example pipeline').selectOption('noise');
+  await chooseExample(page, 'noise');
   await ready(page);
   await expect(page.locator('.frame-b .frame-heading')).toContainText('Gaussian blur');
   await expect(page.locator('.frame-b .frame-caption')).toContainText('192 × 192');

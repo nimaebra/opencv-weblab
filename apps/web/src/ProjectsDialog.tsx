@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Upload, FlaskConical, Trash2, Copy, Pencil, Download } from 'lucide-react';
-import { Button, Modal } from '@opencv-weblab/ui';
+import { Button, Modal, TextInput } from '@opencv-weblab/ui';
 import { emptyDocument } from '@opencv-weblab/pipeline';
 import { useLab } from './store';
 import { readLocal } from './persistence';
@@ -61,7 +61,7 @@ export function ProjectsDialog({ controller }: { controller: WorkspaceController
       </div>
       <label className="field">
         Find an experiment
-        <input
+        <TextInput
           ref={searchInput}
           type="search"
           value={search}
@@ -79,7 +79,7 @@ export function ProjectsDialog({ controller }: { controller: WorkspaceController
                   run(renameProject(project.id, name).then(() => setRenaming(null)));
                 }}
               >
-                <input
+                <TextInput
                   aria-label="New experiment name"
                   maxLength={100}
                   value={name}
