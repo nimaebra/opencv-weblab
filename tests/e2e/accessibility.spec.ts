@@ -37,6 +37,41 @@ test('mobile drawers focus their content, dismiss from an input, and block cover
   await expect(inspector).toBeFocused();
 });
 
+test('drawer entrances respect keyboard shortcuts and reduced motion', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/');
+  const tools = page.getByRole('button', { name: 'Tools', exact: true });
+  const search = page.getByRole('searchbox', { name: 'Find an operation' });
+  const drawer = page.getByRole('complementary', {
+    name: 'Operation library',
+    includeHidden: true,
+  });
+  await drawer.evaluate((element) => {
+    element.addEventListener('transitionrun', (event) => {
+      if (event.target === element && event.propertyName === 'translate') {
+        element.setAttribute('data-slide-started', '');
+      }
+    });
+  });
+
+  await tools.click();
+  await expect(drawer).toHaveAttribute('data-slide-started', '');
+  await search.press('Escape');
+  await expect(drawer).toBeHidden();
+
+  await page.keyboard.press('/');
+  await expect(search).toBeFocused();
+  await expect(drawer).toHaveCSS('transition-duration', '0s');
+  await search.press('Escape');
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await tools.click();
+  await expect(search).toBeFocused();
+  await expect(drawer).toHaveCSS('transition-duration', '0s');
+  await expect(drawer).toHaveCSS('translate', 'none');
+});
+
 test('panel separators resize in keyboard steps and expose their actual dimensions', async ({
   page,
 }) => {

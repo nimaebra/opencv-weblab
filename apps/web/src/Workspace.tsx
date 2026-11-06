@@ -17,7 +17,7 @@ function subscribeBreakpoint(change: () => void) {
 }
 const isNarrow = () => window.matchMedia(panelBreakpoint).matches;
 export function Workspace({ controller }: { controller: WorkspaceController }) {
-  const { doc, panel, setPanel, workspace, resizePanel } = controller;
+  const { doc, panel, animatePanel, setPanel, workspace, resizePanel } = controller;
   const revealWorkspace = useCallback(() => setPanel('workspace'), [setPanel]);
   const narrow = useSyncExternalStore(subscribeBreakpoint, isNarrow);
   const toolsTrigger = useRef<HTMLButtonElement>(null);
@@ -49,7 +49,7 @@ export function Workspace({ controller }: { controller: WorkspaceController }) {
           aria-expanded={panel === 'tools'}
           aria-pressed={panel === 'tools'}
           icon={<Menu size={15} />}
-          onClick={() => setPanel(panel === 'tools' ? 'workspace' : 'tools')}
+          onClick={(event) => setPanel(panel === 'tools' ? 'workspace' : 'tools', event.detail > 0)}
         >
           Tools
         </Button>
@@ -62,12 +62,18 @@ export function Workspace({ controller }: { controller: WorkspaceController }) {
           aria-expanded={panel === 'inspector'}
           aria-pressed={panel === 'inspector'}
           icon={<PanelRight size={15} />}
-          onClick={() => setPanel(panel === 'inspector' ? 'workspace' : 'inspector')}
+          onClick={(event) =>
+            setPanel(panel === 'inspector' ? 'workspace' : 'inspector', event.detail > 0)
+          }
         >
           Inspector
         </Button>
       </nav>
-      <main ref={workspace} className={`workspace show-${panel}`}>
+      <main
+        ref={workspace}
+        className={`workspace show-${panel}`}
+        data-animate-panel={animatePanel ? '' : undefined}
+      >
         <Library onClose={revealWorkspace} />
         <PanelResizeHandle side="left" workspace={workspace} onResize={resizePanel} />
         {narrow && panel !== 'workspace' && (
