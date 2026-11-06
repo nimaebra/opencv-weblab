@@ -68,7 +68,7 @@ test('drawer entrances respect keyboard shortcuts and reduced motion', async ({ 
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await tools.click();
   await expect(search).toBeFocused();
-  await expect(drawer).toHaveCSS('transition-duration', '0s');
+  await expect(drawer).toHaveCSS('transition-property', 'opacity');
   await expect(drawer).toHaveCSS('translate', 'none');
 });
 

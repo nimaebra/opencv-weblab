@@ -40,6 +40,8 @@ export const CanvasView = memo(function CanvasView({
       ctx.clearRect(0, 0, rect.width, rect.height);
       if (!bitmap) return;
       const t = imageTransform(bitmap, rect, thumbnail ? origin : view);
+      const imageWidth = bitmap.width * t.scale;
+      const imageHeight = bitmap.height * t.scale;
       if (checkerboard && !thumbnail) {
         const tile = new OffscreenCanvas(16, 16),
           pattern = tile.getContext('2d')!;
@@ -49,10 +51,16 @@ export const CanvasView = memo(function CanvasView({
         pattern.fillRect(0, 0, 8, 8);
         pattern.fillRect(8, 8, 8, 8);
         ctx.fillStyle = ctx.createPattern(tile, 'repeat')!;
-        ctx.fillRect(t.left, t.top, bitmap.width * t.scale, bitmap.height * t.scale);
+        ctx.fillRect(t.left, t.top, imageWidth, imageHeight);
       }
       ctx.imageSmoothingEnabled = !pixelated;
-      ctx.drawImage(bitmap, t.left, t.top, bitmap.width * t.scale, bitmap.height * t.scale);
+      ctx.drawImage(bitmap, t.left, t.top, imageWidth, imageHeight);
+      if (imageWidth > 1 && imageHeight > 1) {
+        // Follow the bitmap edge as it pans and zooms inside the stage.
+        ctx.strokeStyle = 'oklch(0 0 0 / 0.1)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(t.left + 0.5, t.top + 0.5, imageWidth - 1, imageHeight - 1);
+      }
       if (bounds) {
         const x = t.left + bounds.x * t.scale,
           y = t.top + bounds.y * t.scale;

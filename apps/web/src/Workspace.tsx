@@ -44,6 +44,7 @@ export function Workspace({ controller }: { controller: WorkspaceController }) {
     <>
       <nav className="mobile-nav" aria-label="Workspace panels">
         <Button
+          static
           ref={toolsTrigger}
           aria-controls="tools-panel"
           aria-expanded={panel === 'tools'}
@@ -53,10 +54,11 @@ export function Workspace({ controller }: { controller: WorkspaceController }) {
         >
           Tools
         </Button>
-        <Button aria-pressed={panel === 'workspace'} onClick={() => setPanel('workspace')}>
+        <Button static aria-pressed={panel === 'workspace'} onClick={() => setPanel('workspace')}>
           Workspace
         </Button>
         <Button
+          static
           ref={inspectorTrigger}
           aria-controls="inspector-panel"
           aria-expanded={panel === 'inspector'}

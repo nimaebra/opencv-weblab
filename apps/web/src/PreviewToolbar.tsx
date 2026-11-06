@@ -50,6 +50,7 @@ export function PreviewToolbar({
         <div className="row preview-actions">
           <div className="segmented" role="group" aria-label="Comparison mode">
             <Button
+              static
               aria-label="Side-by-side comparison"
               title="Side-by-side comparison"
               aria-pressed={!wiping}
@@ -57,6 +58,7 @@ export function PreviewToolbar({
               onClick={() => onCompareChange('split')}
             />
             <Button
+              static
               aria-label="Wipe comparison"
               aria-pressed={wiping}
               disabled={!same}
@@ -99,7 +101,12 @@ export function PreviewToolbar({
           <Button
             aria-label={expanded ? 'Collapse image viewer' : 'Expand image viewer'}
             title={expanded ? 'Collapse viewer (Esc)' : 'Expand viewer'}
-            icon={expanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+            icon={
+              <span className="icon-swap">
+                <Maximize2 size={15} data-hidden={expanded ? '' : undefined} />
+                <Minimize2 size={15} data-hidden={expanded ? undefined : ''} />
+              </span>
+            }
             onClick={() => onExpand()}
           />
           <Button

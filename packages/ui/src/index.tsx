@@ -13,22 +13,37 @@ export const Button = forwardRef<
   ButtonHTMLAttributes<HTMLButtonElement> & {
     variant?: 'primary' | 'ghost' | 'danger';
     icon?: ReactNode;
+    static?: boolean;
   }
->(({ variant = 'ghost', icon, children, className = '', type = 'button', ...props }, ref) => (
-  <button
-    ref={ref}
-    type={type}
-    className={`button ${variant} ${icon && !children ? 'icon-only' : ''} ${className}`}
-    {...props}
-  >
-    {icon && (
-      <span className="button-icon" aria-hidden="true">
-        {icon}
-      </span>
-    )}
-    {children}
-  </button>
-));
+>(
+  (
+    {
+      variant = 'ghost',
+      icon,
+      children,
+      static: isStatic,
+      className = '',
+      type = 'button',
+      ...props
+    },
+    ref,
+  ) => (
+    <button
+      ref={ref}
+      type={type}
+      className={`button ${variant} ${icon ? (children ? 'with-icon' : 'icon-only') : ''} ${className}`}
+      data-static={isStatic ? '' : undefined}
+      {...props}
+    >
+      {icon && (
+        <span className="button-icon" aria-hidden="true">
+          {icon}
+        </span>
+      )}
+      {children}
+    </button>
+  ),
+);
 Button.displayName = 'Button';
 export function Modal({
   open,
