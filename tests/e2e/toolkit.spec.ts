@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { chooseExample } from './select';
 import { readFile } from 'node:fs/promises';
 const examples = [
   ['local-contrast', 'CLAHE', '192 × 192'],
@@ -25,7 +26,7 @@ test('discovers the expanded catalog and exports the saved template matching exp
     await expect(page.locator('.tool')).toContainText(label);
   }
   await search.fill('');
-  await page.getByLabel('Example pipeline').selectOption('template-matching');
+  await chooseExample(page, 'template-matching');
   const output = page.locator('.frame-b');
   await expect(output.locator('.frame-heading')).toContainText('Template matching');
   await expect(output.locator('.frame-caption')).toContainText('192 × 192');
@@ -60,7 +61,7 @@ test('runs all five new examples and restores their saved graph and original sou
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
   for (const [kind, label, dimensions] of examples) {
-    await page.getByLabel('Example pipeline').selectOption(kind);
+    await chooseExample(page, kind);
     await expect(page.locator('.frame-b .frame-heading')).toContainText(label);
     await expect(page.locator('.frame-b .frame-caption')).toContainText(dimensions);
     await expect(page.locator('.has-error')).toHaveCount(0);
@@ -108,7 +109,7 @@ test('keeps perspective controls keyboard accessible on a narrow screen and expo
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
-  await page.getByLabel('Example pipeline').selectOption('rectify');
+  await chooseExample(page, 'rectify');
   await expect(page.locator('.frame-b .frame-caption')).toContainText('160 × 160');
   await page.locator('.react-flow__node').filter({ hasText: 'Perspective correction' }).click();
   await page.getByRole('button', { name: 'Inspector', exact: true }).click();

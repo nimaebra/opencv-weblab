@@ -6,7 +6,7 @@ import {
   registry,
   type PipelineNode,
 } from '@opencv-weblab/pipeline';
-import { Button } from '@opencv-weblab/ui';
+import { Button, Select, TextInput } from '@opencv-weblab/ui';
 import { useLab } from './store';
 import { useRuntime } from './runtime';
 import {
@@ -78,25 +78,33 @@ function ComparisonPanel({ node }: { node: PipelineNode }) {
       </p>
       <label className="comparison-parameter">
         Parameter{' '}
-        <select
+        <Select
           aria-label="Comparison parameter"
           value={key}
-          onChange={(e) => {
+          options={parameters.map((parameter) => ({
+            value: parameter.key,
+            label: parameter.label,
+          }))}
+          onValueChange={(value) => {
             cancelComparison();
-            setKey(e.target.value);
+            setKey(value);
           }}
-        >
-          {parameters.map((p) => (
-            <option key={p.key} value={p.key}>
-              {p.label}
-            </option>
-          ))}
-        </select>
+        />
       </label>
       <ComparisonForm key={key} node={node} parameterKey={key} />
     </section>
   );
 }
+function validComparisonValues(node: PipelineNode, parameterKey: string, values: string[]) {
+  if (values.length !== 3 || new Set(values.map(Number)).size !== 3) return false;
+  const schema = parameterSchema(node.operation);
+  return values.every(
+    (value) =>
+      value.trim() !== '' &&
+      schema.safeParse({ ...node.parameters, [parameterKey]: Number(value) }).success,
+  );
+}
+
 function ComparisonForm({ node, parameterKey }: { node: PipelineNode; parameterKey: string }) {
   const [values, setValues] = useState(() => comparisonValues(node, parameterKey).map(String));
   const comparison = useStudy((s) => s.comparison),
@@ -104,22 +112,19 @@ function ComparisonForm({ node, parameterKey }: { node: PipelineNode; parameterK
     error = useStudy((s) => s.comparisonError);
   const runtimeStatus = useRuntime((s) => s.status);
   const parameter = registry[node.operation]!.parameters.find((p) => p.key === parameterKey)!;
-  const valid =
-    values.length === 3 &&
-    new Set(values.map(Number)).size === 3 &&
-    values.every(
-      (v) =>
-        v.trim() !== '' &&
-        parameterSchema(node.operation).safeParse({ ...node.parameters, [parameterKey]: Number(v) })
-          .success,
-    );
+  const running = status === 'running';
+  const results =
+    comparison?.nodeId === node.id && comparison.parameter === parameterKey
+      ? comparison.variants
+      : undefined;
+  const valid = validComparisonValues(node, parameterKey, values);
   return (
     <>
       <div className="comparison-controls">
         {(['first', 'second', 'third'] as const).map((slot, index) => (
           <label key={slot}>
             Value {index + 1}
-            <input
+            <TextInput
               aria-label={`Comparison value ${index + 1}`}
               type="number"
               min={parameter.min}
@@ -134,20 +139,24 @@ function ComparisonForm({ node, parameterKey }: { node: PipelineNode; parameterK
           </label>
         ))}
         <Button
-          variant="primary"
-          disabled={!valid || !node.enabled || runtimeStatus !== 'ready' || status === 'running'}
-          onClick={() =>
+          className="comparison-run"
+          variant={running ? undefined : 'primary'}
+          disabled={!running && (!valid || !node.enabled || runtimeStatus !== 'ready')}
+          onClick={() => {
+            if (running) {
+              cancelComparison();
+              return;
+            }
             void requestComparison(
               useLab.getState().document,
               node.id,
               parameterKey,
               values.map(Number),
-            )
-          }
+            );
+          }}
         >
-          Generate comparisons
+          {running ? 'Cancel comparison' : 'Generate comparisons'}
         </Button>
-        {status === 'running' && <Button onClick={cancelComparison}>Cancel comparison</Button>}
       </div>
       {!valid && (
         <p className="comparison-feedback">
@@ -155,59 +164,83 @@ function ComparisonForm({ node, parameterKey }: { node: PipelineNode; parameterK
         </p>
       )}
       <div role="status" className="comparison-feedback">
-        {status === 'running'
-          ? 'Comparing sequentially… Editing the graph cancels this comparison.'
-          : error || (status === 'idle' ? 'Choose values, then generate three previews.' : '')}
+        {running && 'Rendering three previews… Editing the graph cancels this comparison.'}
+        {status === 'error' && error}
+        {status === 'idle' && 'Choose values, then generate three previews.'}
+        {results && 'Three previews ready. Choose a value to apply it.'}
       </div>
-      {comparison && comparison.nodeId === node.id && comparison.parameter === parameterKey && (
-        <>
-          <div className="comparison-results">
-            {comparison.variants.map((variant, index) => (
-              <figure key={variant.value}>
-                <figcaption>
-                  {parameter.label} <strong>{variant.value}</strong>
-                </figcaption>
-                <div className="variant-image">
-                  <CanvasView nodeId={`variant-${index}`} frameStore={comparisonFrames} />
-                </div>
-                <span>
-                  {variant.width} × {variant.height} preview px
-                </span>
-                <Button
-                  onClick={() => {
-                    const current = useLab.getState().document.nodes.find((n) => n.id === node.id);
-                    if (!current) return;
-                    useLab.getState().edit((doc) => ({
-                      ...doc,
-                      nodes: doc.nodes.map((n) =>
-                        n.id === current.id
-                          ? {
-                              ...n,
-                              parameters: { ...n.parameters, [parameterKey]: variant.value },
-                            }
-                          : n,
-                      ),
-                    }));
-                    useLab
-                      .getState()
-                      .notify(
-                        `Applied ${parameter.label.toLowerCase()} ${variant.value}. Undo restores the previous setting.`,
-                      );
-                    cancelComparison();
-                  }}
-                >
-                  Apply {variant.value}
-                </Button>
-              </figure>
-            ))}
-          </div>
-          <p className="study-note">
-            Approximate previews, input capped at 1,024 px. Spatial parameters scale with the
-            preview. Full-resolution export uses your original parameters. No result is
-            automatically ranked best.
-          </p>
-        </>
+      {(running || results) && (
+        <ComparisonResults
+          nodeId={node.id}
+          parameterKey={parameterKey}
+          parameterLabel={parameter.label}
+          values={values}
+          results={results}
+        />
       )}
+    </>
+  );
+}
+function ComparisonResults({
+  nodeId,
+  parameterKey,
+  parameterLabel,
+  values,
+  results,
+}: {
+  nodeId: string;
+  parameterKey: string;
+  parameterLabel: string;
+  values: string[];
+  results?: NonNullable<ReturnType<typeof useStudy.getState>['comparison']>['variants'];
+}) {
+  function apply(value: number) {
+    const lab = useLab.getState();
+    if (!lab.document.nodes.some((node) => node.id === nodeId)) return;
+    lab.edit((doc) => ({
+      ...doc,
+      nodes: doc.nodes.map((node) =>
+        node.id === nodeId
+          ? { ...node, parameters: { ...node.parameters, [parameterKey]: value } }
+          : node,
+      ),
+    }));
+    lab.notify(
+      `Applied ${parameterLabel.toLowerCase()} ${value}. Undo restores the previous setting.`,
+    );
+    cancelComparison();
+  }
+
+  return (
+    <>
+      <div className="comparison-results" aria-busy={!results}>
+        {values.map((value, index) => {
+          const variant = results?.[index];
+          return (
+            <figure key={value}>
+              <figcaption>
+                {parameterLabel} <strong>{Number(value)}</strong>
+              </figcaption>
+              <div className="variant-image" data-pending={variant ? undefined : ''}>
+                {variant && (
+                  <CanvasView nodeId={`variant-${index}`} frameStore={comparisonFrames} />
+                )}
+              </div>
+              <span>
+                {variant ? `${variant.width} × ${variant.height} preview px` : 'Rendering…'}
+              </span>
+              {variant && (
+                <Button onClick={() => apply(variant.value)}>Apply {variant.value}</Button>
+              )}
+            </figure>
+          );
+        })}
+      </div>
+      <p className="study-note">
+        Approximate previews, input capped at 1,024 px. Spatial parameters scale with the preview.
+        Full-resolution export uses your original parameters. No result is automatically ranked
+        best.
+      </p>
     </>
   );
 }

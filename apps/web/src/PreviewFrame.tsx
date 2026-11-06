@@ -2,11 +2,31 @@ import type { Ref, HTMLAttributes } from 'react';
 import type { NodeResult, Bounds } from '@opencv-weblab/engine';
 import type { PipelineNode } from '@opencv-weblab/pipeline';
 import { CanvasView } from './CanvasView';
+import type { useRuntime } from './runtime';
 import type { View, Size } from './viewGeometry';
+
+type RuntimeStatus = ReturnType<typeof useRuntime.getState>['status'];
+
+function emptyPreview(node: PipelineNode | undefined, status: RuntimeStatus, error?: string) {
+  if (!node) return ['Pin a node here from the inspector.', 'No node pinned'];
+  switch (status) {
+    case 'loading':
+      return ['Loading the image engine…', 'Preview pending'];
+    case 'processing':
+      return ['Rendering this step…', 'Preview pending'];
+    case 'error':
+      return ['Restart the image engine to continue.', 'Engine unavailable'];
+    default:
+      return [error ?? 'Connect a valid image to see this step.', 'No output'];
+  }
+}
+
 export function PreviewFrame({
   node,
   slot,
   result,
+  status,
+  error,
   view,
   pixelated,
   checker,
@@ -21,6 +41,8 @@ export function PreviewFrame({
   node?: PipelineNode;
   slot: 'A' | 'B';
   result?: NodeResult;
+  status: RuntimeStatus;
+  error?: string;
   view: View;
   pixelated: boolean;
   checker: boolean;
@@ -32,6 +54,7 @@ export function PreviewFrame({
   highlight?: { x: number; y: number; radius: number };
   bounds?: Bounds;
 }) {
+  const [placeholder, emptyCaption] = emptyPreview(node, status, error);
   return (
     <div
       className={`preview-frame frame-${slot.toLowerCase()}`}
@@ -40,7 +63,7 @@ export function PreviewFrame({
       <div className="frame-heading">
         <span className="slot">{slot}</span>
         <strong title={node?.label}>{node?.label ?? 'Choose a node'}</strong>
-        <span className="frame-mode">{result?.mode.toUpperCase() ?? 'NO OUTPUT'}</span>
+        <span className="frame-mode">{result?.mode.toUpperCase()}</span>
       </div>
       <div
         ref={stageRef}
@@ -59,13 +82,7 @@ export function PreviewFrame({
           highlight={highlight}
           bounds={bounds}
         />
-        {!result && (
-          <div className="preview-placeholder">
-            {node
-              ? 'Connect a valid image to see this step.'
-              : 'Pin a node here from the inspector.'}
-          </div>
-        )}
+        {!result && <div className="preview-placeholder">{placeholder}</div>}
       </div>
       <div className="frame-caption">
         <span>
@@ -80,7 +97,7 @@ export function PreviewFrame({
                 )}
             </>
           ) : (
-            'Awaiting input'
+            emptyCaption
           )}
         </span>
         <span>

@@ -8,27 +8,45 @@ import {
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Slider from '@radix-ui/react-slider';
 import { X } from 'lucide-react';
+
+export { Select } from './Select';
+export { Checkbox, Switch, TextArea, TextInput } from './Fields';
 export const Button = forwardRef<
   HTMLButtonElement,
   ButtonHTMLAttributes<HTMLButtonElement> & {
     variant?: 'primary' | 'ghost' | 'danger';
     icon?: ReactNode;
+    static?: boolean;
   }
->(({ variant = 'ghost', icon, children, className = '', type = 'button', ...props }, ref) => (
-  <button
-    ref={ref}
-    type={type}
-    className={`button ${variant} ${icon && !children ? 'icon-only' : ''} ${className}`}
-    {...props}
-  >
-    {icon && (
-      <span className="button-icon" aria-hidden="true">
-        {icon}
-      </span>
-    )}
-    {children}
-  </button>
-));
+>(
+  (
+    {
+      variant = 'ghost',
+      icon,
+      children,
+      static: isStatic,
+      className = '',
+      type = 'button',
+      ...props
+    },
+    ref,
+  ) => (
+    <button
+      ref={ref}
+      type={type}
+      className={`button ${variant} ${icon ? (children ? 'with-icon' : 'icon-only') : ''} ${className}`}
+      data-static={isStatic ? '' : undefined}
+      {...props}
+    >
+      {icon && (
+        <span className="button-icon" aria-hidden="true">
+          {icon}
+        </span>
+      )}
+      {children}
+    </button>
+  ),
+);
 Button.displayName = 'Button';
 export function Modal({
   open,
@@ -96,6 +114,7 @@ export function Range({
   onChange,
   disabled = false,
   describedBy,
+  className = '',
 }: {
   label: string;
   value: number;
@@ -105,11 +124,12 @@ export function Range({
   onChange: (v: number) => void;
   disabled?: boolean;
   describedBy?: string;
+  className?: string;
 }) {
   return (
     <Slider.Root
       aria-label={label}
-      className="range"
+      className={`range ${className}`}
       value={[value]}
       min={min}
       max={max}

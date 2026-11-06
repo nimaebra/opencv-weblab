@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { chooseExample } from './select';
 import { newNode } from '../../packages/pipeline/src/index';
 async function ready(page: Page) {
   await expect(page.locator('.status-dot.ready')).toBeVisible({ timeout: 30000 });
@@ -6,7 +7,7 @@ async function ready(page: Page) {
 async function noise(page: Page) {
   await page.goto('/');
   await ready(page);
-  await page.getByLabel('Example pipeline').selectOption('noise');
+  await chooseExample(page, 'noise');
   await ready(page);
   await expect(page.locator('.frame-b .frame-heading')).toContainText('Gaussian blur');
   await expect(page.locator('.frame-b .frame-caption')).toContainText('192 × 192');
@@ -86,11 +87,40 @@ test('explains actual grayscale pixels and mirrored borders with keyboard inspec
 test('compares three real outputs, validates values and applies one undoable parameter edit', async ({
   page,
 }) => {
+  await page.addInitScript(() => {
+    const post = Worker.prototype.postMessage;
+    const pending: Array<() => void> = [];
+    let paused = true;
+    window.addEventListener('release-comparison', () => {
+      paused = false;
+      for (const send of pending.splice(0)) send();
+    });
+    Worker.prototype.postMessage = function (message: { type: string }, ...options: unknown[]) {
+      if (paused && message.type === 'compare') {
+        pending.push(() => Reflect.apply(post, this, [message, ...options]));
+      } else {
+        Reflect.apply(post, this, [message, ...options]);
+      }
+    };
+  });
   await noise(page);
   await page.locator('.react-flow__node').filter({ hasText: 'Gaussian blur' }).click();
   await page.getByRole('button', { name: 'Compare three values', exact: true }).click();
-  await page.getByRole('button', { name: 'Generate comparisons', exact: true }).click();
+  const generate = page.getByRole('button', { name: 'Generate comparisons', exact: true });
+  const cancel = page.getByRole('button', { name: 'Cancel comparison', exact: true });
+  const comparison = page.getByRole('region', { name: 'Parameter comparison' });
+  await generate.press('Enter');
+  await expect(cancel).toBeFocused();
+  await expect(comparison.getByRole('status')).toContainText('Rendering three previews');
+  await expect(comparison.locator('.variant-image[data-pending]')).toHaveCount(3);
+  await cancel.press('Enter');
+  await expect(generate).toBeFocused();
+  await expect(comparison.locator('.comparison-results')).toHaveCount(0);
+  await generate.press('Enter');
+  await expect(comparison.locator('.variant-image[data-pending]')).toHaveCount(3);
+  await page.evaluate(() => window.dispatchEvent(new Event('release-comparison')));
   await expect(page.locator('.comparison-results canvas')).toHaveCount(3);
+  await expect(comparison.getByRole('status')).toContainText('Three previews ready');
   await expect(page.locator('.comparison-results')).toContainText('192 × 192 preview px');
   await page.getByRole('button', { name: 'Apply 7', exact: true }).click();
   await expect(
