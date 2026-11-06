@@ -15,10 +15,13 @@ for case in json.loads((folder/'expected.json').read_text()):
     subprocess.run([sys.executable,str(folder/f"{case['id']}.py")],cwd=folder,check=True,capture_output=True)
     image=cv.imread(str(folder/'output.png'),cv.IMREAD_UNCHANGED)
     if image.ndim==3:image=cv.cvtColor(image,cv.COLOR_BGRA2RGBA)
-    expected=np.array(case['pixels'],dtype=np.uint8).reshape(image.shape)
+    expected_shape=(case['height'],case['width']) if case['channels']==1 else (case['height'],case['width'],case['channels'])
+    if image.shape != expected_shape:
+        raise AssertionError(f"{case['id']}: expected shape {expected_shape}, got {image.shape}")
+    expected=np.array(case['pixels'],dtype=np.uint8).reshape(expected_shape)
     delta=np.abs(image.astype(np.int16)-expected.astype(np.int16))
     # Native vectorized HSV/filters may round differently; exact operations stay exact.
-    tolerance=3 if case['id']=='hue' else 1 if case['id'] in ['gaussian','box','bilateral','rotate','resize','brightness'] else 0
+    tolerance=3 if case['id']=='hue' else 1 if case['id'] in ['gaussian','box','bilateral','rotate','resize','brightness','fourier-spectrum'] else 0
     maximum=int(delta.max());passed=maximum<=tolerance
     if case.get('csv') is not None:
         actual_rows=list(csv.reader((folder/case['csvFile']).read_text().splitlines()))

@@ -14,11 +14,18 @@ export const toolkitOperations = new Set([
   'shi-tomasi',
   'distance-transform',
   'color-map',
+  'template-match',
+  'inpaint',
+  'flood-selection',
+  'pad',
+  'fourier-spectrum',
 ]);
+const MAX_INPAINT_WORK = 50_000_000;
 export function executeToolkit(
   cv: CV,
   node: PipelineNode,
   src: CV,
+  second: CV,
   scale: number,
   available: number,
 ): CV {
@@ -27,21 +34,41 @@ export function executeToolkit(
   const pixels = src.rows * src.cols;
   const width = Math.max(1, Math.round(n('width') * scale));
   const height = Math.max(1, Math.round(n('height') * scale));
+  const padding = node.operation === 'pad' ? Math.round(n('padding') * scale) : 0;
+  const spectrumWidth = node.operation === 'fourier-spectrum' ? cv.getOptimalDFTSize(src.cols) : 0;
+  const spectrumHeight = node.operation === 'fourier-spectrum' ? cv.getOptimalDFTSize(src.rows) : 0;
+  const selected = node.operation === 'inpaint' ? cv.countNonZero(second) : 0;
+  const radius = node.operation === 'inpaint' ? Math.max(1, Math.round(n('radius') * scale)) : 0;
+  if (node.operation === 'inpaint') {
+    if (selected === pixels)
+      throw new Error('Inpaint needs some unmasked pixels. Reduce the mask coverage.');
+    // Bound neighborhood visits before the synchronous WASM call.
+    if (selected * (2 * radius + 1) ** 2 > MAX_INPAINT_WORK)
+      throw new Error('Inpaint needs a smaller mask or radius for this image.');
+  }
   // Allow for float maps, derivatives, accumulators, output and drawing buffers.
   // HoughLinesP also needs a rho/theta accumulator (one-degree theta bins).
-  const scratch =
-    node.operation === 'crop'
-      ? pixels * src.elemSize()
-      : 64 * 1024 +
-        pixels * (node.operation === 'hough-circles' ? 96 : 48) +
-        (node.operation === 'clahe' ? n('tilesX') * n('tilesY') * 1024 : 0) +
-        (node.operation === 'hough-lines'
-          ? Math.ceil(Math.hypot(src.cols, src.rows)) * 2 * 180 * 4
-          : 0) +
-        (node.operation === 'perspective' ? width * height * src.elemSize() : 0) +
-        (node.operation.startsWith('hough-') || node.operation === 'shi-tomasi'
-          ? MAX_OBJECTS * 128
-          : 0);
+  let scratch = 64 * 1024;
+  if (node.operation === 'crop' || (node.operation === 'inpaint' && selected === 0)) {
+    scratch = pixels * src.elemSize();
+  } else if (node.operation === 'pad') {
+    const paddedWidth = src.cols + 2 * padding;
+    scratch += paddedWidth * (src.rows + 2 * padding + 4) * src.elemSize();
+  } else if (node.operation === 'fourier-spectrum') {
+    scratch += spectrumWidth * spectrumHeight * 48;
+  } else {
+    scratch +=
+      pixels * (node.operation === 'hough-circles' ? 96 : 48) +
+      (node.operation === 'clahe' ? n('tilesX') * n('tilesY') * 1024 : 0) +
+      (node.operation === 'hough-lines'
+        ? Math.ceil(Math.hypot(src.cols, src.rows)) * 2 * 180 * 4
+        : 0) +
+      (node.operation === 'perspective' ? width * height * src.elemSize() : 0) +
+      (node.operation === 'template-match' ? second.rows * second.cols * 16 : 0) +
+      (node.operation.startsWith('hough-') || node.operation === 'shi-tomasi'
+        ? MAX_OBJECTS * 128
+        : 0);
+  }
   if (scratch > available)
     throw new Error(
       'This operation needs too much working memory. Use a smaller image or fewer branches.',
@@ -242,6 +269,107 @@ export function executeToolkit(
           )[String(p.palette)],
         );
         cv.cvtColor(bgr, dst, cv.COLOR_BGR2RGBA);
+        break;
+      }
+      case 'template-match': {
+        const response = mat();
+        cv.matchTemplate(src, second, response, cv.TM_SQDIFF);
+        const { minLoc } = cv.minMaxLoc(response);
+        cv.cvtColor(src, dst, cv.COLOR_GRAY2RGBA);
+        cv.rectangle(
+          dst,
+          minLoc,
+          point(minLoc.x + second.cols - 1, minLoc.y + second.rows - 1),
+          green,
+          1,
+          cv.LINE_8,
+        );
+        break;
+      }
+      case 'inpaint': {
+        if (selected === 0) {
+          src.copyTo(dst);
+          break;
+        }
+        const method = p.method === 'telea' ? cv.INPAINT_TELEA : cv.INPAINT_NS;
+        if (src.channels() === 1) cv.inpaint(src, second, dst, radius, method);
+        else {
+          const rgb = mat(),
+            repaired = mat();
+          cv.cvtColor(src, rgb, cv.COLOR_RGBA2RGB);
+          cv.inpaint(rgb, second, repaired, radius, method);
+          cv.cvtColor(repaired, dst, cv.COLOR_RGB2RGBA);
+          const original = src.data,
+            output = dst.data;
+          for (let i = 3; i < output.length; i += 4) output[i] = original[i];
+        }
+        break;
+      }
+      case 'flood-selection': {
+        const mask = keep(cv.Mat.zeros(src.rows + 2, src.cols + 2, cv.CV_8UC1));
+        const seed = point(
+          (n('seedX') * (src.cols - 1)) / 100,
+          (n('seedY') * (src.rows - 1)) / 100,
+        );
+        const tolerance = new cv.Scalar(n('tolerance'));
+        const flags =
+          n('connectivity') | cv.FLOODFILL_FIXED_RANGE | cv.FLOODFILL_MASK_ONLY | (255 << 8);
+        cv.floodFill(src, mask, seed, new cv.Scalar(0), new cv.Rect(), tolerance, tolerance, flags);
+        const region = keep(mask.roi(new cv.Rect(1, 1, src.cols, src.rows)));
+        region.copyTo(dst);
+        break;
+      }
+      case 'pad':
+        cv.copyMakeBorder(
+          src,
+          dst,
+          padding,
+          padding,
+          padding,
+          padding,
+          p.border === 'replicate'
+            ? cv.BORDER_REPLICATE
+            : p.border === 'reflect'
+              ? cv.BORDER_REFLECT_101
+              : cv.BORDER_CONSTANT,
+          new cv.Scalar(0, 0, 0, 255),
+        );
+        break;
+      case 'fourier-spectrum': {
+        const padded = mat(),
+          real = mat(),
+          spectrum = mat(),
+          magnitude = mat();
+        cv.copyMakeBorder(
+          src,
+          padded,
+          0,
+          spectrumHeight - src.rows,
+          0,
+          spectrumWidth - src.cols,
+          cv.BORDER_CONSTANT,
+          new cv.Scalar(0),
+        );
+        padded.convertTo(real, cv.CV_32F);
+        cv.dft(real, spectrum, cv.DFT_COMPLEX_OUTPUT);
+        magnitude.create(spectrumHeight, spectrumWidth, cv.CV_32FC1);
+        const complex = spectrum.data32F,
+          centered = magnitude.data32F;
+        const shiftX = Math.floor(spectrumWidth / 2),
+          shiftY = Math.floor(spectrumHeight / 2);
+        for (let y = 0; y < spectrumHeight; y++) {
+          const row = y * spectrumWidth;
+          const shiftedRow = ((y + shiftY) % spectrumHeight) * spectrumWidth;
+          for (let x = 0; x < spectrumWidth; x++) {
+            const index = 2 * (row + x);
+            const real = complex[index],
+              imaginary = complex[index + 1];
+            centered[shiftedRow + ((x + shiftX) % spectrumWidth)] = Math.log1p(
+              Math.sqrt(real * real + imaginary * imaginary),
+            );
+          }
+        }
+        cv.normalize(magnitude, dst, 0, 255, cv.NORM_MINMAX, cv.CV_8U);
         break;
       }
       default:

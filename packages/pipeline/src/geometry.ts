@@ -29,3 +29,18 @@ export function cropBounds(p: GeometryParameters, width: number, height: number)
     height: Math.ceil((Number(p.bottom) * height) / 100) - y,
   };
 }
+
+// OpenCV's optimal DFT lengths have no prime factors besides 2, 3, and 5.
+export function optimalDftSize(size: number): number {
+  if (!Number.isSafeInteger(size) || size < 1) return size;
+  let best = 1;
+  while (best < size) best *= 2;
+  for (let byFive = 1; byFive < best; byFive *= 5) {
+    for (let byThree = byFive; byThree < best; byThree *= 3) {
+      let candidate = byThree;
+      while (candidate < size) candidate *= 2;
+      best = Math.min(best, candidate);
+    }
+  }
+  return best;
+}

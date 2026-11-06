@@ -54,6 +54,7 @@ try {
         'top-hat',
         'black-hat',
         'clahe',
+        'template-match',
       ].includes(op.id)
     ) {
       input = cv.Mat.zeros(24, 32, cv.CV_8UC4);
@@ -90,6 +91,12 @@ try {
           cv.LINE_8,
         );
       }
+      sourcePixels = [...input.data];
+    }
+    if (op.id === 'inpaint') {
+      input = new cv.Mat(24, 32, cv.CV_8UC4, new cv.Scalar(80, 110, 140, 120));
+      input.data.set([255, 255, 255, 240], (12 * 32 + 16) * 4);
+      allocated.push(input);
       sourcePixels = [...input.data];
     }
     if (op.accepts === 'gray') {
@@ -142,7 +149,26 @@ try {
     doc.nodes.push(node);
     doc = connect(doc, parent.id, node.id);
     let second = input;
-    if (op.inputs === 2) {
+    if (op.id === 'template-match') {
+      const crop = newNode('crop');
+      crop.parameters = { left: 37.5, top: 4, right: 75, bottom: 50 };
+      doc.nodes.push(crop);
+      doc = connect(doc, parent.id, crop.id);
+      doc = connect(doc, crop.id, node.id, 1);
+      second = execute(cv, crop, [input]);
+      allocated.push(second);
+    } else if (op.id === 'inpaint') {
+      const gray = newNode('grayscale');
+      const threshold = newNode('threshold');
+      threshold.parameters.threshold = 200;
+      doc.nodes.push(gray, threshold);
+      doc = connect(doc, source.id, gray.id);
+      doc = connect(doc, gray.id, threshold.id);
+      doc = connect(doc, threshold.id, node.id, 1);
+      const grayscale = execute(cv, gray, [input]);
+      second = execute(cv, threshold, [grayscale]);
+      allocated.push(grayscale, second);
+    } else if (op.inputs === 2) {
       const inverse = newNode(op.id === 'apply-mask' ? 'grayscale' : 'invert');
       doc.nodes.push(inverse);
       doc = connect(doc, parent.id, inverse.id);
@@ -155,7 +181,7 @@ try {
     const output = result.mat;
     allocated.push(output);
     if (
-      ['hough-lines', 'hough-circles', 'shi-tomasi'].includes(op.id) &&
+      ['hough-lines', 'hough-circles', 'shi-tomasi', 'template-match'].includes(op.id) &&
       !Array.from(
         { length: output.rows * output.cols },
         (_, i) =>

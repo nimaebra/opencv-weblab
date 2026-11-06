@@ -59,6 +59,10 @@ for (const url of ['http://localhost:4173/', 'http://127.0.0.1:4174/lab/'])
       );
       await expect(page.locator('.has-error')).toHaveCount(0);
     }
+    await page.getByLabel('Example pipeline').selectOption('template-matching');
+    await expect(page.locator('.frame-b .frame-heading')).toContainText('Template matching');
+    await expect(page.locator('.frame-b .frame-caption')).toContainText('192 × 192');
+    await expect(page.locator('.has-error')).toHaveCount(0);
     await page.getByLabel('Example pipeline').selectOption('counting');
     await page.locator('.measurements-panel > summary').click();
     await page.getByRole('button', { name: 'Measure full resolution / CSV', exact: true }).click();
