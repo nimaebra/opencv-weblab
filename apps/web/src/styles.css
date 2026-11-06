@@ -847,6 +847,29 @@ svg {
 .preview-images:active {
   cursor: grabbing;
 }
+.preview-images[data-updating]::after {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  inset: 0 0 auto;
+  height: 2px;
+  border-radius: 8px;
+  background: #c3ab6a;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .preview-images[data-updating]::after {
+    animation: preview-feedback var(--motion-feedback) var(--ease-out) 180ms both;
+  }
+  @keyframes preview-feedback {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
 .preview-frame {
   background: var(--viewer);
   border-radius: 8px;
@@ -922,6 +945,7 @@ svg {
   justify-content: center;
   padding: 20px;
   text-align: center;
+  overflow-wrap: anywhere;
   color: #a8b2a1;
   font-size: 11px;
   pointer-events: none;
@@ -2392,6 +2416,9 @@ select:disabled {
   border-radius: 4px;
   background: var(--paper);
 }
+.comparison-run {
+  min-inline-size: 150px;
+}
 .comparison-feedback {
   color: var(--muted);
   margin-top: 10px;
@@ -2426,6 +2453,23 @@ select:disabled {
   background: var(--viewer);
   border-radius: var(--radius);
   overflow: hidden;
+}
+.variant-image[data-pending]::before {
+  content: '';
+  position: absolute;
+  inset: 16px 20%;
+  border-radius: 4px;
+  background: #343c36;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .variant-image canvas {
+    transition: opacity var(--motion-feedback) var(--ease-out);
+  }
+  @starting-style {
+    .variant-image canvas {
+      opacity: 0;
+    }
+  }
 }
 .guided-experiment {
   flex-shrink: 0;

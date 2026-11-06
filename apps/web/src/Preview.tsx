@@ -5,6 +5,7 @@ import { OutputAnalysis } from './OutputAnalysis';
 import { PixelExplanation } from './PixelExplanation';
 import { usePreviewController } from './usePreviewController';
 import { ViewerOptions, PreviewFooter } from './ViewerOptions';
+import { useRuntime } from './runtime';
 export function Preview() {
   const controller = usePreviewController();
   const {
@@ -38,6 +39,9 @@ export function Preview() {
     stageHandlers,
   } = controller;
 
+  const errorA = useRuntime((s) => (a ? s.errors[a.id] : undefined));
+  const errorB = useRuntime((s) => (b ? s.errors[b.id] : undefined));
+  const updating = status === 'loading' || status === 'processing';
   const measurements = usePreviewMeasurements(doc, rb?.measurements, revision, status === 'ready');
   return (
     <>
@@ -61,11 +65,14 @@ export function Preview() {
         <div
           ref={container}
           className={`preview-images ${wiping ? 'wipe' : ''} ${checker ? 'checkerboard' : ''} ${inspect ? 'inspecting' : ''}`}
+          data-updating={updating ? '' : undefined}
         >
           <PreviewFrame
             node={a}
             slot="A"
             result={ra}
+            status={status}
+            error={errorA}
             view={view}
             pixelated={pixelated}
             checker={checker}
@@ -78,6 +85,8 @@ export function Preview() {
             node={b}
             slot="B"
             result={rb}
+            status={status}
+            error={errorB}
             view={view}
             pixelated={pixelated}
             checker={checker}

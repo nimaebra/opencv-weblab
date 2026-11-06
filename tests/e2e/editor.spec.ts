@@ -13,8 +13,27 @@ test('runs the real WASM pipeline, edits only downstream nodes, and restores loc
 }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto('/');
+  const engine = Promise.withResolvers<void>();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.route('**/engine-worker.js', async (route) => {
+    await engine.promise;
+    await route.continue();
+  });
+  try {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.frame-b .preview-placeholder')).toHaveText(
+      'Loading the image engine…',
+    );
+    await expect(page.locator('.preview-images')).toHaveAttribute('data-updating', '');
+    const motion = await page
+      .locator('.preview-images')
+      .evaluate((element) => getComputedStyle(element, '::after').animationName);
+    expect(motion).toBe('none');
+  } finally {
+    engine.resolve();
+  }
   await ready(page);
+  await expect(page.locator('.frame-b .preview-placeholder')).toHaveCount(0);
   await expect(page.locator('.node-meta').first()).toContainText('512 × 480');
   await page.locator('.react-flow__node').filter({ hasText: 'Gaussian blur' }).click();
   await expect(page.getByRole('heading', { name: 'Gaussian blur', exact: true })).toBeVisible();
@@ -66,6 +85,9 @@ test('imports a graph, reconnects an image, and exports PNG, JSON and Python', a
     buffer: Buffer.from(JSON.stringify(doc)),
   });
   await expect(page.locator('.operation-node.has-error').first()).toBeVisible();
+  await expect(page.locator('.frame-a .preview-placeholder')).toHaveText(
+    'Reconnect the original image to continue.',
+  );
   await page.locator('.react-flow__node').filter({ hasText: 'Image source' }).click();
   const chooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Reconnect image' }).click();
