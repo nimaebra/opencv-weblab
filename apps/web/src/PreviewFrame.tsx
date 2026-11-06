@@ -39,7 +39,7 @@ export function PreviewFrame({
     >
       <div className="frame-heading">
         <span className="slot">{slot}</span>
-        <strong>{node?.label ?? 'Choose a node'}</strong>
+        <strong title={node?.label}>{node?.label ?? 'Choose a node'}</strong>
         <span className="frame-mode">{result?.mode.toUpperCase() ?? 'NO OUTPUT'}</span>
       </div>
       <div
@@ -62,8 +62,8 @@ export function PreviewFrame({
         {!result && (
           <div className="preview-placeholder">
             {node
-              ? 'Connect a valid image to see this step'
-              : 'Select a node, or pin an output here.'}
+              ? 'Connect a valid image to see this step.'
+              : 'Pin a node here from the inspector.'}
           </div>
         )}
       </div>
@@ -71,19 +71,20 @@ export function PreviewFrame({
         <span>
           {result ? (
             <>
-              {result.width} × {result.height} preview px
-              {original && (
-                <small>
-                  Original: {original.width} × {original.height}
-                </small>
-              )}
+              {result.width} × {result.height} px
+              {original &&
+                (original.width !== result.width || original.height !== result.height) && (
+                  <small>
+                    Original: {original.width} × {original.height}
+                  </small>
+                )}
             </>
           ) : (
             'Awaiting input'
           )}
         </span>
         <span>
-          {slot === 'A' ? 'Input / reference' : `${result?.elapsed.toFixed(1) ?? '—'} ms`}
+          {slot === 'A' ? 'Reference' : result ? `${result.elapsed.toFixed(1)} ms` : null}
         </span>
       </div>
     </div>

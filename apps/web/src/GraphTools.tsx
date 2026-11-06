@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { GitBranch } from 'lucide-react';
+import { Copy, GitBranch, Redo2, Trash2, Undo2, Workflow } from 'lucide-react';
 import { Button } from '@opencv-weblab/ui';
 import { operations, type PipelineDocument } from '@opencv-weblab/pipeline';
 import { useLab } from './store';
@@ -29,34 +29,53 @@ export function GraphTools({
             {doc.nodes.length} nodes · {doc.edges.length} connections
           </span>
         </div>
-        <div className="graph-actions">
-          <Button onClick={arrange} disabled={!doc.nodes.length}>
-            Auto arrange
-          </Button>
-          <Button disabled={!selectedCount} onClick={() => useLab.getState().duplicateSelection()}>
-            Duplicate selection
-          </Button>
-          <Button disabled={!selectedCount} onClick={() => useLab.getState().removeSelection()}>
-            Delete selection
-          </Button>
-        </div>
-        <div className="compact-history">
-          <button
-            className="button"
-            aria-label="Undo"
-            disabled={!past}
-            onClick={() => useLab.getState().undo()}
-          >
-            Undo
-          </button>
-          <button
-            className="button"
-            aria-label="Redo"
-            disabled={!future}
-            onClick={() => useLab.getState().redo()}
-          >
-            Redo
-          </button>
+        <div className="graph-toolbar">
+          <div className="graph-actions" role="group" aria-label="Pipeline actions">
+            <Button
+              aria-label="Auto arrange"
+              title="Auto arrange"
+              icon={<Workflow size={15} />}
+              onClick={arrange}
+              disabled={!doc.nodes.length}
+            >
+              <span>Auto arrange</span>
+            </Button>
+            <Button
+              aria-label="Duplicate selection"
+              title="Duplicate selection"
+              icon={<Copy size={15} />}
+              disabled={!selectedCount}
+              onClick={() => useLab.getState().duplicateSelection()}
+            >
+              <span>Duplicate selection</span>
+            </Button>
+            <Button
+              variant="danger"
+              aria-label="Delete selection"
+              title="Delete selection"
+              icon={<Trash2 size={15} />}
+              disabled={!selectedCount}
+              onClick={() => useLab.getState().removeSelection()}
+            >
+              <span>Delete selection</span>
+            </Button>
+          </div>
+          <div className="compact-history" role="group" aria-label="Edit history">
+            <Button
+              aria-label="Undo"
+              title="Undo"
+              icon={<Undo2 size={15} />}
+              disabled={!past}
+              onClick={() => useLab.getState().undo()}
+            />
+            <Button
+              aria-label="Redo"
+              title="Redo"
+              icon={<Redo2 size={15} />}
+              disabled={!future}
+              onClick={() => useLab.getState().redo()}
+            />
+          </div>
         </div>
       </div>
       <details className="connection-tools">

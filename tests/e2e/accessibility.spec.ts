@@ -143,6 +143,15 @@ test('touch controls and long project names fit phone and landscape layouts', as
     expect(bounds!.height).toBeGreaterThanOrEqual(44);
     expect(bounds!.width).toBeGreaterThanOrEqual(44);
     const graph = await page.locator('.react-flow').boundingBox();
-    expect(graph!.height).toBeGreaterThan(100);
+    expect(graph!.height).toBeGreaterThanOrEqual(160);
+    const stage = await page.locator('.image-stage[data-slot="A"]').boundingBox();
+    expect(stage!.height).toBeGreaterThanOrEqual(120);
   }
+
+  const title = await page.getByRole('textbox', { name: 'Project name' }).boundingBox();
+  expect(title!.width).toBeGreaterThanOrEqual(100);
+  await page.locator('.connection-tools summary').click();
+  await expect(page.getByLabel('Connection to edit')).toBeVisible();
+  const graph = await page.locator('.react-flow').boundingBox();
+  expect(graph!.height).toBeGreaterThanOrEqual(160);
 });

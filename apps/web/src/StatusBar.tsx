@@ -48,14 +48,13 @@ export function StatusBar({ controller }: { controller: WorkspaceController }) {
           {stats && (
             <>
               <span>{stats.elapsed.toFixed(0)} ms</span>
-              <span>
+              <span className="runtime-cache">
                 {stats.computed} computed · {stats.cached} cached
               </span>
             </>
           )}
-          <span className="privacy-dot" />
-          <span>Processing on your device</span>
-          <span>{offlineLabels[offline]}</span>
+          <span className="local-processing">Processing on your device</span>
+          <span className="offline-status">{offlineLabels[offline]}</span>
           <span className="footer-version">v0.2</span>
         </div>
       </footer>

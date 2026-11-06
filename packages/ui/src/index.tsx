@@ -1,4 +1,10 @@
-import { forwardRef, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import {
+  forwardRef,
+  useRef,
+  type ButtonHTMLAttributes,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Slider from '@radix-ui/react-slider';
 import { X } from 'lucide-react';
@@ -31,6 +37,8 @@ export function Modal({
   description,
   children,
   className = '',
+  alert = false,
+  fallbackFocus,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -38,6 +46,8 @@ export function Modal({
   description: string;
   children: ReactNode;
   className?: string;
+  alert?: boolean;
+  fallbackFocus?: RefObject<HTMLElement | null>;
 }) {
   const returnFocus = useRef<HTMLElement | null>(null);
   return (
@@ -46,21 +56,29 @@ export function Modal({
         <Dialog.Overlay className="dialog-overlay" />
         <Dialog.Content
           className={`dialog-content ${className}`}
+          role={alert ? 'alertdialog' : 'dialog'}
+          aria-modal="true"
+          onInteractOutside={alert ? (event) => event.preventDefault() : undefined}
           onOpenAutoFocus={() => {
             returnFocus.current = document.activeElement as HTMLElement;
           }}
           onCloseAutoFocus={(event) => {
-            if (returnFocus.current?.isConnected) {
+            const target = returnFocus.current?.isConnected
+              ? returnFocus.current
+              : fallbackFocus?.current;
+            if (target) {
               event.preventDefault();
-              returnFocus.current.focus({ preventScroll: true });
+              target.focus({ preventScroll: true });
             }
           }}
         >
           <div className="dialog-heading">
             <Dialog.Title>{title}</Dialog.Title>
-            <Dialog.Close asChild>
-              <Button aria-label="Close dialog" icon={<X size={18} />} />
-            </Dialog.Close>
+            {!alert && (
+              <Dialog.Close asChild>
+                <Button aria-label="Close dialog" icon={<X size={18} />} />
+              </Dialog.Close>
+            )}
           </div>
           <Dialog.Description>{description}</Dialog.Description>
           {children}

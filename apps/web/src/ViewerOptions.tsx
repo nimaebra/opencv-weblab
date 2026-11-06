@@ -20,63 +20,74 @@ export function ViewerOptions({ controller }: { controller: Controller }) {
   } = controller;
   return (
     <div className="viewer-options">
-      <label>
-        <input
-          type="checkbox"
-          checked={follow}
-          onChange={(e) => useLab.getState().setFollowSelection(e.target.checked)}
-        />{' '}
-        B follows selection
-      </label>
-      <label>
-        <input type="checkbox" checked={checker} onChange={(e) => setChecker(e.target.checked)} />{' '}
-        Transparency
-      </label>
-      <label>
-        <input
-          type="checkbox"
-          checked={pixelated}
-          onChange={(e) => setPixelated(e.target.checked)}
-        />{' '}
-        Crisp pixels
-      </label>
-      <Button
-        aria-label="Pan images"
-        aria-pressed={!inspect}
-        icon={<Hand size={14} />}
-        onClick={() => {
-          setInspect(false);
-          setExplain(false);
-        }}
-      >
-        Pan
-      </Button>
-      <Button
-        aria-label="Inspect output pixels"
-        aria-pressed={inspect}
-        icon={<Scan size={14} />}
-        onClick={() => setInspect(true)}
-      >
-        Inspect B
-      </Button>
-      <Button
-        aria-label="Toggle output histogram"
-        aria-pressed={histogram}
-        icon={<BarChart3 size={14} />}
-        onClick={() => setHistogram(!histogram)}
-      >
-        Histogram
-      </Button>
-      <Button
-        aria-pressed={explain}
-        icon={<Lightbulb size={14} />}
-        onClick={() => {
-          setExplain(!explain);
-          setInspect(true);
-        }}
-      >
-        Explain a pixel
-      </Button>
+      <div className="viewer-flags" role="group" aria-label="Preview settings">
+        <label>
+          <input
+            type="checkbox"
+            checked={follow}
+            onChange={(e) => useLab.getState().setFollowSelection(e.target.checked)}
+          />{' '}
+          B follows selection
+        </label>
+        <label>
+          <input type="checkbox" checked={checker} onChange={(e) => setChecker(e.target.checked)} />{' '}
+          Transparency
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={pixelated}
+            onChange={(e) => setPixelated(e.target.checked)}
+          />{' '}
+          Crisp pixels
+        </label>
+      </div>
+      <div className="viewer-modes segmented" role="group" aria-label="Image interaction">
+        <Button
+          aria-label="Pan images"
+          title="Pan images"
+          aria-pressed={!inspect}
+          icon={<Hand size={14} />}
+          onClick={() => {
+            setInspect(false);
+            setExplain(false);
+          }}
+        >
+          Pan
+        </Button>
+        <Button
+          aria-label="Inspect output pixels"
+          title="Inspect output pixels"
+          aria-pressed={inspect}
+          icon={<Scan size={14} />}
+          onClick={() => setInspect(true)}
+        >
+          Inspect B
+        </Button>
+      </div>
+      <div className="viewer-analysis" role="group" aria-label="Image analysis">
+        <Button
+          aria-label="Toggle output histogram"
+          aria-pressed={histogram}
+          icon={<BarChart3 size={14} />}
+          onClick={() => setHistogram(!histogram)}
+        >
+          Histogram
+        </Button>
+        <Button
+          aria-label="Explain a pixel"
+          aria-pressed={explain}
+          icon={<Lightbulb size={14} />}
+          onClick={() => {
+            setExplain(!explain);
+            setInspect(true);
+          }}
+        >
+          <span>
+            Explain<span className="viewer-explain-suffix"> a pixel</span>
+          </span>
+        </Button>
+      </div>
     </div>
   );
 }
@@ -86,7 +97,7 @@ export function PreviewFooter({ controller }: { controller: Controller }) {
     <div className="preview-bottom">
       <span>
         {doc.preview.quality === 'auto'
-          ? 'Approximate preview · export uses original resolution'
+          ? 'Auto preview up to 1024 px · PNG exports at full size'
           : 'Full-resolution preview · exact parameters'}
         {!same && ra && rb ? ' · Wipe needs matching dimensions' : ''}
       </span>
@@ -98,11 +109,16 @@ export function PreviewFooter({ controller }: { controller: Controller }) {
         />
         <span>{view.zoom === 'fit' ? 'Fit' : `${Math.round(view.zoom * 100)}%`}</span>
         <Button aria-label="Zoom in images" icon={<Plus size={13} />} onClick={() => zoom(1.2)} />
-        <Button aria-label="Actual size images" onClick={() => setView({ zoom: 1, x: 0, y: 0 })}>
+        <Button
+          aria-label="Actual size images"
+          aria-pressed={view.zoom === 1}
+          onClick={() => setView({ zoom: 1, x: 0, y: 0 })}
+        >
           100%
         </Button>
         <Button
           aria-label="Fit images"
+          aria-pressed={view.zoom === 'fit'}
           icon={<Maximize2 size={13} />}
           onClick={() => setView(origin)}
         />

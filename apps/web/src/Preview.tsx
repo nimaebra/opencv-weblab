@@ -52,6 +52,7 @@ export function Preview() {
           same={same}
           wiping={wiping}
           expanded={expanded}
+          status={status}
           canExport={status === 'ready' && !!rb}
           onCompareChange={setMode}
           onExpand={() => setExpanded(!expanded)}
