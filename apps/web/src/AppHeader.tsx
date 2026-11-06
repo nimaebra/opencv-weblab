@@ -7,6 +7,7 @@ import {
   Pencil,
   ImagePlus,
   FlaskConical,
+  BookOpen,
 } from 'lucide-react';
 import { Button } from '@opencv-weblab/ui';
 import { makeExample, lessons, type LessonKind } from '@opencv-weblab/pipeline';
@@ -48,6 +49,12 @@ function ProjectName({ name }: { name: string }) {
 
 export function AppHeader({ controller }: { controller: WorkspaceController }) {
   const { doc, past, future, saveStatus, setDialog, chooseDocument, openProjects } = controller;
+  const saveLabel = {
+    saved: 'Saved on this device',
+    saving: 'Saving locally',
+    temporary: 'Temporary session — download a backup',
+    failed: 'Save failed — download a backup',
+  }[saveStatus];
 
   return (
     <>
@@ -60,30 +67,10 @@ export function AppHeader({ controller }: { controller: WorkspaceController }) {
           <span className="brand-divider" />
         </a>
         <div className="project-title">
+          <Pencil size={13} aria-hidden="true" />
           <ProjectName key={doc.id} name={doc.name} />
-          <Pencil size={12} aria-hidden="true" />
-          <span
-            className="save-indicator"
-            role="status"
-            title={
-              {
-                saved: 'Saved on this device',
-                saving: 'Saving locally',
-                temporary: 'Temporary session — download a backup',
-                failed: 'Save failed — download a backup',
-              }[saveStatus]
-            }
-          >
-            <span className="sr-only">
-              {
-                {
-                  saved: 'Saved on this device',
-                  saving: 'Saving locally',
-                  temporary: 'Temporary session — download a backup',
-                  failed: 'Save failed — download a backup',
-                }[saveStatus]
-              }
-            </span>
+          <span className="save-indicator" role="status" title={saveLabel}>
+            <span className="sr-only">{saveLabel}</span>
             {saveStatus === 'saved' ? (
               <Check size={12} />
             ) : (
@@ -125,13 +112,10 @@ export function AppHeader({ controller }: { controller: WorkspaceController }) {
         </div>
       </header>
       <div className="experiment-bar">
-        <div className="row">
-          <span className="lab-badge">OpenCV lab</span>
-          <span className="experiment-copy">Explore images. Understand each step.</span>
-        </div>
-        <div className="row">
+        <div className="row example-picker">
           <label className="examples-label" htmlFor="examples">
-            Try an experiment
+            <BookOpen size={15} aria-hidden="true" />
+            Example pipelines
           </label>
           <select
             id="examples"
@@ -151,13 +135,13 @@ export function AppHeader({ controller }: { controller: WorkspaceController }) {
               </option>
             ))}
           </select>
-          <Button
-            icon={<ImagePlus size={15} />}
-            onClick={() => document.getElementById('image-input')?.click()}
-          >
-            Add image
-          </Button>
         </div>
+        <Button
+          icon={<ImagePlus size={15} />}
+          onClick={() => document.getElementById('image-input')?.click()}
+        >
+          Add image
+        </Button>
       </div>
       <GuidedExperiment doc={doc} />
     </>

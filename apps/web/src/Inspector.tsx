@@ -1,7 +1,18 @@
 import { OperationControls } from './OperationControls';
 import { ComparisonButton } from './ParameterComparison';
 import { memo, useState } from 'react';
-import { Copy, Trash2, Pin, BookOpen, ArrowRight, Link, ArrowUpRight, Plus, X } from 'lucide-react';
+import {
+  Copy,
+  Trash2,
+  Pin,
+  BookOpen,
+  SlidersHorizontal,
+  ArrowRight,
+  Link,
+  ArrowUpRight,
+  Plus,
+  X,
+} from 'lucide-react';
 import {
   registry,
   connect,
@@ -29,6 +40,7 @@ export const Inspector = memo(function Inspector({
   const from = fromState.nodeId === selected ? fromState.value : '';
   const setFrom = (value: string) => setFromState({ nodeId: selected ?? '', value });
   const [input, setInput] = useState(0);
+  const output = doc.nodes.find((n) => n.id === doc.preview.b);
   if (!node)
     return (
       <aside
@@ -48,30 +60,21 @@ export const Inspector = memo(function Inspector({
         </div>
         <div className="inspector-empty">
           <div className="inspector-empty-icon">
-            <Sliders />
+            <SlidersHorizontal size={22} aria-hidden="true" />
           </div>
-          <h3>A closer look</h3>
-          <p>
-            Select a node to inspect its result, change parameters, and understand what happens to
-            each pixel.
-          </p>
-          <div className="instruction">
-            <span>1</span> Choose a tool
-          </div>
-          <div className="instruction">
-            <span>2</span> Adjust its parameters
-          </div>
-          <div className="instruction">
-            <span>3</span> See the difference
-          </div>
-        </div>
-        <div className="local-note">
-          <BookOpen size={17} />
-          <p>
-            A small lab for big ideas.
-            <br />
-            <span>Every change is a chance to learn.</span>
-          </p>
+          <h3>Select a pipeline node</h3>
+          <p>Adjust its parameters, inspect its output, and see the equivalent OpenCV code.</p>
+          {output && (
+            <Button
+              icon={<ArrowRight size={15} />}
+              onClick={(event) => {
+                event.currentTarget.closest('aside')?.focus({ preventScroll: true });
+                useLab.getState().select(output.id);
+              }}
+            >
+              Inspect output B
+            </Button>
+          )}
         </div>
       </aside>
     );
@@ -106,6 +109,7 @@ export const Inspector = memo(function Inspector({
             onClick={() => useLab.getState().duplicate(node.id)}
           />
           <Button
+            variant="danger"
             aria-label="Delete node"
             title="Delete node"
             icon={<Trash2 size={15} />}
@@ -309,19 +313,3 @@ export const Inspector = memo(function Inspector({
     </aside>
   );
 });
-function Sliders() {
-  return (
-    <svg
-      width="28"
-      height="28"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.3"
-    >
-      <path d="M4 7h16M4 17h16" />
-      <circle cx="9" cy="7" r="3" fill="var(--surface)" />
-      <circle cx="15" cy="17" r="3" fill="var(--surface)" />
-    </svg>
-  );
-}

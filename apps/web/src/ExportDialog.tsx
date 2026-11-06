@@ -22,13 +22,11 @@ export function ExportDialog({ controller }: { controller: WorkspaceController }
       <Modal
         open={dialog === 'export'}
         onOpenChange={(open) => !open && setDialog(null)}
-        title="Take your experiment further"
-        description="Keep the result, or turn your pipeline into code you can run yourself."
+        title="Export experiment"
+        className="export-dialog"
+        description="Save the output as an image, back up the full project, or download the pipeline as code."
       >
         <div className="export-options">
-          <Button onClick={() => void backup()} icon={<Download size={16} />}>
-            Portable backup
-          </Button>
           <Button
             variant="primary"
             icon={<Download size={16} />}
@@ -37,6 +35,9 @@ export function ExportDialog({ controller }: { controller: WorkspaceController }
           >
             Full-resolution PNG
           </Button>
+          <Button onClick={() => void backup()} icon={<Download size={16} />}>
+            Portable backup
+          </Button>
           <Button
             icon={<Upload size={16} />}
             onClick={() => document.getElementById('json-input')?.click()}
@@ -44,7 +45,7 @@ export function ExportDialog({ controller }: { controller: WorkspaceController }
             Import project
           </Button>
         </div>
-        <div className="export-tabs">
+        <div className="export-tabs" role="group" aria-label="Pipeline format">
           <Button
             aria-pressed={exportTab === 'python'}
             icon={<Code2 size={15} />}
@@ -60,7 +61,11 @@ export function ExportDialog({ controller }: { controller: WorkspaceController }
             Pipeline JSON
           </Button>
         </div>
-        <pre className="code-preview">
+        <pre
+          className="code-preview"
+          tabIndex={0}
+          aria-label={exportTab === 'python' ? 'Python code preview' : 'Pipeline JSON preview'}
+        >
           <code>{exported}</code>
         </pre>
         <div className="dialog-footer">

@@ -9,10 +9,21 @@ import {
 import { Button } from '@opencv-weblab/ui';
 import { useLab } from './store';
 import { exportImage } from './runtime';
+import type { usePreviewController } from './usePreviewController';
+
+const previewStatus = {
+  loading: 'Loading',
+  processing: 'Updating',
+  exporting: 'Exporting',
+  error: 'Engine error',
+  ready: 'Live',
+} as const;
+
 export function PreviewToolbar({
   same,
   wiping,
   expanded,
+  status,
   canExport,
   onCompareChange,
   onExpand,
@@ -20,6 +31,7 @@ export function PreviewToolbar({
   same: boolean;
   wiping: boolean;
   expanded: boolean;
+  status: ReturnType<typeof usePreviewController>['status'];
   canExport: boolean;
   onCompareChange: (mode: 'split' | 'wipe') => void;
   onExpand: () => void;
@@ -30,15 +42,16 @@ export function PreviewToolbar({
       <div className="preview-heading">
         <div>
           <h2>Image preview</h2>
-          <span className="live-label">
-            <i />
-            Live
+          <span className="live-label" data-status={status}>
+            <i aria-hidden="true" />
+            {previewStatus[status]}
           </span>
         </div>
         <div className="row preview-actions">
-          <div className="segmented">
+          <div className="segmented" role="group" aria-label="Comparison mode">
             <Button
               aria-label="Side-by-side comparison"
+              title="Side-by-side comparison"
               aria-pressed={!wiping}
               icon={<Columns2 size={15} />}
               onClick={() => onCompareChange('split')}
@@ -80,8 +93,8 @@ export function PreviewToolbar({
               )
             }
           >
-            <option value="auto">Auto · ≤1024 px</option>
-            <option value="full">Full resolution</option>
+            <option value="auto">Auto</option>
+            <option value="full">Full</option>
           </select>
           <Button
             aria-label={expanded ? 'Collapse image viewer' : 'Expand image viewer'}

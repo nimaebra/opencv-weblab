@@ -131,14 +131,18 @@ test('duplicates, renames, searches and confirms project deletion without changi
   await page.getByRole('button', { name: 'Projects', exact: true }).click();
   await page.getByRole('searchbox', { name: 'Find an experiment' }).fill('My copy');
   await page.getByRole('button', { name: 'Delete local project My copy', exact: true }).click();
-  await expect(page.getByRole('group', { name: 'Confirm project deletion' })).toBeVisible();
-  await page.getByRole('button', { name: 'Keep experiment' }).click();
+  const confirm = page.getByRole('alertdialog', { name: 'Confirm project deletion' });
+  await expect(confirm).toBeVisible();
+  const keep = confirm.getByRole('button', { name: 'Keep experiment' });
+  await expect(keep).toBeFocused();
+  await keep.click();
   await expect(
     page.getByRole('button', { name: 'Delete local project My copy', exact: true }),
-  ).toBeVisible();
+  ).toBeFocused();
   await page.getByRole('button', { name: 'Delete local project My copy', exact: true }).click();
   await page.getByRole('button', { name: 'Delete experiment', exact: true }).click();
   await expect(page.getByText('No experiments match your search.')).toBeVisible();
+  await expect(page.getByRole('searchbox', { name: 'Find an experiment' })).toBeFocused();
 });
 test('drops an independent tool, inserts on a real edge and undoes each gesture atomically', async ({
   page,
