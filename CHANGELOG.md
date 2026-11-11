@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Refine workspace controls and transitions, with reduced-motion support and visible graph node borders in forced colors.
+- Clarify preview and comparison feedback, including when a pinned node needs its source reconnected after a PNG export fails.
 - Add Template matching, Inpaint, Flood selection, Pad image and Fourier spectrum, bringing the catalog to 52 tools.
 - Add a guided template matching experiment, bringing the example library to 19.
 - Add CLAHE, Crop / ROI, Perspective correction, Hough lines and circles, Top-hat, Black-hat, Shi–Tomasi corners, Distance transform and Color map.

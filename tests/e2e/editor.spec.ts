@@ -107,6 +107,53 @@ test('imports a graph, reconnects an image, and exports PNG, JSON and Python', a
   await page.getByRole('button', { name: 'Full-resolution PNG', exact: true }).click();
   expect((await downloaded).suggestedFilename()).toMatch(/\.png$/);
 });
+test('keeps the pinned node error visible after a PNG export fails', async ({ page }) => {
+  const exportError = 'This graph needs too much working memory.';
+  await page.addInitScript((message) => {
+    const postMessage = Worker.prototype.postMessage;
+    Worker.prototype.postMessage = function (request, options) {
+      if (request.type === 'export') {
+        this.dispatchEvent(
+          new MessageEvent('message', {
+            data: { type: 'error', revision: request.revision, message },
+          }),
+        );
+        return;
+      }
+      postMessage.call(this, request, options);
+    };
+  }, exportError);
+  await page.goto('/');
+  const doc = makeExample();
+  const missing = newNode('source', 0, 200);
+  missing.sourceId = 'missing-source';
+  doc.sources.push({ ...doc.sources[0]!, id: missing.sourceId, builtin: undefined });
+  doc.nodes.push(missing);
+  doc.preview.a = missing.id;
+  await page.locator('#json-input').setInputFiles({
+    name: 'missing-reference.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(doc)),
+  });
+  const placeholder = page.locator('.frame-a .preview-placeholder');
+  const reconnect = 'Reconnect the original image to continue.';
+  await expect(placeholder).toHaveText(reconnect);
+  await ready(page);
+  await page.getByRole('button', { name: 'Export full-resolution PNG', exact: true }).click();
+  await expect(page.locator('.status-bar').getByRole('status')).toHaveText(exportError);
+  await expect(placeholder).toHaveText(reconnect);
+});
+test('keeps unselected graph nodes outlined in forced colors', async ({ page, browserName }) => {
+  test.skip(browserName !== 'chromium', 'Uses Chromium forced-colors emulation');
+  await page.emulateMedia({ forcedColors: 'active' });
+  await page.goto('/');
+  const node = page.locator('.operation-node:not(.selected)').first();
+  await expect(node).toBeVisible();
+  await expect(node).toHaveCSS('box-shadow', 'none');
+  const background = await node.evaluate((element) => getComputedStyle(element).backgroundColor);
+  await expect(node).not.toHaveCSS('border-top-color', background);
+  await expect(node).not.toHaveCSS('border-top-color', 'rgba(0, 0, 0, 0)');
+});
 test('prevents invalid cycles and leaves disconnected errors visible', async ({ page }) => {
   await page.goto('/');
   await ready(page);

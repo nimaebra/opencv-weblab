@@ -15,7 +15,9 @@ function emptyPreview(node: PipelineNode | undefined, status: RuntimeStatus, err
     case 'processing':
       return ['Rendering this step…', 'Preview pending'];
     case 'error':
-      return ['Restart the image engine to continue.', 'Engine unavailable'];
+      return error
+        ? [error, 'No output']
+        : ['Restart the image engine to continue.', 'Engine unavailable'];
     default:
       return [error ?? 'Connect a valid image to see this step.', 'No output'];
   }
