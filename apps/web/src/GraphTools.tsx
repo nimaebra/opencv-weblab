@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Copy, GitBranch, Redo2, Trash2, Undo2, Workflow } from 'lucide-react';
-import { Button } from '@opencv-weblab/ui';
+import { Button, Select } from '@opencv-weblab/ui';
 import { operations, type PipelineDocument } from '@opencv-weblab/pipeline';
 import { useLab } from './store';
 export function GraphTools({
@@ -83,34 +83,30 @@ export function GraphTools({
         <div className="row">
           <label>
             Connection
-            <select
+            <Select
               aria-label="Connection to edit"
               value={connectionId}
-              onChange={(e) => setConnectionId(e.target.value)}
-            >
-              <option value="">Choose a connection</option>
-              {doc.edges.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {labels.get(e.source)} → {labels.get(e.target)} ({e.input === 0 ? 'A' : 'B'})
-                </option>
-              ))}
-            </select>
+              placeholder="Choose a connection"
+              options={[
+                { value: '', label: 'Choose a connection' },
+                ...doc.edges.map((edge) => ({
+                  value: edge.id,
+                  label: `${labels.get(edge.source)} → ${labels.get(edge.target)} (${edge.input === 0 ? 'A' : 'B'})`,
+                })),
+              ]}
+              onValueChange={setConnectionId}
+            />
           </label>
           <label>
             Insert tool
-            <select
+            <Select
               aria-label="Tool to insert"
               value={insertTool}
-              onChange={(e) => setInsertTool(e.target.value)}
-            >
-              {operations
-                .filter((o) => o.inputs === 1)
-                .map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.label}
-                  </option>
-                ))}
-            </select>
+              options={operations
+                .filter((operation) => operation.inputs === 1)
+                .map((operation) => ({ value: operation.id, label: operation.label }))}
+              onValueChange={setInsertTool}
+            />
           </label>
           <Button
             disabled={!doc.edges.some((e) => e.id === connectionId)}

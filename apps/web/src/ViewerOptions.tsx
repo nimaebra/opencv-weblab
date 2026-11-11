@@ -1,5 +1,5 @@
-import { Minus, Plus, Maximize2, Hand, Scan, BarChart3, Lightbulb } from 'lucide-react';
-import { Button } from '@opencv-weblab/ui';
+import { Minus, Plus, Maximize, Hand, Scan, BarChart3, Lightbulb } from 'lucide-react';
+import { Button, Checkbox } from '@opencv-weblab/ui';
 import { useLab } from './store';
 import { origin } from './viewGeometry';
 import type { usePreviewController } from './usePreviewController';
@@ -22,28 +22,24 @@ export function ViewerOptions({ controller }: { controller: Controller }) {
     <div className="viewer-options">
       <div className="viewer-flags" role="group" aria-label="Preview settings">
         <label>
-          <input
-            type="checkbox"
+          <Checkbox
             checked={follow}
             onChange={(e) => useLab.getState().setFollowSelection(e.target.checked)}
-          />{' '}
+          />
           B follows selection
         </label>
         <label>
-          <input type="checkbox" checked={checker} onChange={(e) => setChecker(e.target.checked)} />{' '}
+          <Checkbox checked={checker} onChange={(e) => setChecker(e.target.checked)} />
           Transparency
         </label>
         <label>
-          <input
-            type="checkbox"
-            checked={pixelated}
-            onChange={(e) => setPixelated(e.target.checked)}
-          />{' '}
+          <Checkbox checked={pixelated} onChange={(e) => setPixelated(e.target.checked)} />
           Crisp pixels
         </label>
       </div>
       <div className="viewer-modes segmented" role="group" aria-label="Image interaction">
         <Button
+          static
           aria-label="Pan images"
           title="Pan images"
           aria-pressed={!inspect}
@@ -56,6 +52,7 @@ export function ViewerOptions({ controller }: { controller: Controller }) {
           Pan
         </Button>
         <Button
+          static
           aria-label="Inspect output pixels"
           title="Inspect output pixels"
           aria-pressed={inspect}
@@ -110,6 +107,7 @@ export function PreviewFooter({ controller }: { controller: Controller }) {
         <span>{view.zoom === 'fit' ? 'Fit' : `${Math.round(view.zoom * 100)}%`}</span>
         <Button aria-label="Zoom in images" icon={<Plus size={13} />} onClick={() => zoom(1.2)} />
         <Button
+          static
           aria-label="Actual size images"
           aria-pressed={view.zoom === 1}
           onClick={() => setView({ zoom: 1, x: 0, y: 0 })}
@@ -117,9 +115,10 @@ export function PreviewFooter({ controller }: { controller: Controller }) {
           100%
         </Button>
         <Button
+          static
           aria-label="Fit images"
           aria-pressed={view.zoom === 'fit'}
-          icon={<Maximize2 size={13} />}
+          icon={<Maximize size={13} />}
           onClick={() => setView(origin)}
         />
       </div>

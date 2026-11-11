@@ -1,6 +1,6 @@
 import { memo, useState } from 'react';
 import type { Parameter } from '@opencv-weblab/pipeline';
-import { Range } from '@opencv-weblab/ui';
+import { Range, TextInput } from '@opencv-weblab/ui';
 import { updateParameter } from './store';
 export const NumberParameter = memo(function NumberParameter({
   nodeId,
@@ -54,7 +54,7 @@ export const NumberParameter = memo(function NumberParameter({
     <div className="parameter">
       <label htmlFor={`parameter-${parameter.key}`}>
         {parameter.label}
-        <input
+        <TextInput
           id={`parameter-${parameter.key}`}
           aria-label={`${parameter.label} value`}
           aria-describedby={`${helpId} parameter-${parameter.key}-feedback`}

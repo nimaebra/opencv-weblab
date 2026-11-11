@@ -37,6 +37,41 @@ test('mobile drawers focus their content, dismiss from an input, and block cover
   await expect(inspector).toBeFocused();
 });
 
+test('drawer entrances respect keyboard shortcuts and reduced motion', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/');
+  const tools = page.getByRole('button', { name: 'Tools', exact: true });
+  const search = page.getByRole('searchbox', { name: 'Find an operation' });
+  const drawer = page.getByRole('complementary', {
+    name: 'Operation library',
+    includeHidden: true,
+  });
+  await drawer.evaluate((element) => {
+    element.addEventListener('transitionrun', (event) => {
+      if (event.target === element && event.propertyName === 'translate') {
+        element.setAttribute('data-slide-started', '');
+      }
+    });
+  });
+
+  await tools.click();
+  await expect(drawer).toHaveAttribute('data-slide-started', '');
+  await search.press('Escape');
+  await expect(drawer).toBeHidden();
+
+  await page.keyboard.press('/');
+  await expect(search).toBeFocused();
+  await expect(drawer).toHaveCSS('transition-duration', '0s');
+  await search.press('Escape');
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await tools.click();
+  await expect(search).toBeFocused();
+  await expect(drawer).toHaveCSS('transition-property', 'opacity');
+  await expect(drawer).toHaveCSS('translate', 'none');
+});
+
 test('panel separators resize in keyboard steps and expose their actual dimensions', async ({
   page,
 }) => {
@@ -154,4 +189,55 @@ test('touch controls and long project names fit phone and landscape layouts', as
   await expect(page.getByLabel('Connection to edit')).toBeVisible();
   const graph = await page.locator('.react-flow').boundingBox();
   expect(graph!.height).toBeGreaterThanOrEqual(160);
+});
+
+test('selects support typeahead and restore focus inside the expanded viewer', async ({ page }) => {
+  await page.goto('/');
+  const examples = page.getByRole('combobox', { name: 'Example pipeline' });
+  await examples.press('ArrowDown');
+  await expect(page.getByRole('listbox')).toBeVisible();
+  await page.keyboard.press('w');
+  await expect(page.getByRole('option', { name: 'What sharpening changes' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(examples).toBeFocused();
+  await expect(examples).toHaveAttribute('aria-expanded', 'false');
+
+  await page.getByRole('button', { name: 'Expand image viewer' }).click();
+  const viewer = page.getByRole('dialog', { name: 'Image comparison' });
+  const quality = viewer.getByRole('combobox', { name: 'Preview quality' });
+  await quality.press('Enter');
+  await expect(viewer.getByRole('option', { name: 'Auto', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await page.keyboard.press('Escape');
+  await expect(viewer).toBeVisible();
+  await expect(quality).toBeFocused();
+  await quality.press('Enter');
+  await expect(viewer.getByRole('option', { name: 'Auto', exact: true })).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await expect(viewer.getByRole('option', { name: 'Full', exact: true })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(quality).toBeFocused();
+  await expect(quality).toHaveText('Full');
+});
+
+test('mobile inspector options escape the scrolling panel and dismiss independently', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/');
+  const inspector = page.getByRole('button', { name: 'Inspector', exact: true });
+  await inspector.click();
+  await page.getByRole('button', { name: 'Inspect output B', exact: true }).click();
+  const from = page.getByRole('combobox', { name: 'From node', exact: true });
+  await from.click();
+  const popup = page.getByRole('listbox');
+  await expect(popup.getByRole('option', { name: 'Grayscale', exact: true })).toBeVisible();
+  const box = await popup.boundingBox();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(375);
+  await page.keyboard.press('Escape');
+  await expect(from).toBeFocused();
+  await expect(inspector).toHaveAttribute('aria-expanded', 'true');
 });

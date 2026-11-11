@@ -1,6 +1,6 @@
 import { ImagePlus } from 'lucide-react';
 import { registry, type PipelineNode } from '@opencv-weblab/pipeline';
-import { Button } from '@opencv-weblab/ui';
+import { Button, Select } from '@opencv-weblab/ui';
 import { useLab, updateParameter } from './store';
 import { NumberParameter } from './NumberParameter';
 export function OperationControls({ node }: { node: PipelineNode }) {
@@ -11,20 +11,18 @@ export function OperationControls({ node }: { node: PipelineNode }) {
       <>
         <label className="field">
           Image source
-          <select
+          <Select
             aria-label="Image source"
             value={node.sourceId ?? ''}
-            onChange={(e) =>
-              useLab.getState().update(node.id, { sourceId: e.target.value || undefined })
+            placeholder="Choose an image"
+            options={[
+              { value: '', label: 'Choose an image' },
+              ...sources.map((source) => ({ value: source.id, label: source.name })),
+            ]}
+            onValueChange={(value) =>
+              useLab.getState().update(node.id, { sourceId: value || undefined })
             }
-          >
-            <option value="">Choose an image</option>
-            {sources.map((source) => (
-              <option key={source.id} value={source.id}>
-                {source.name}
-              </option>
-            ))}
-          </select>
+          />
         </label>
         <Button
           icon={<ImagePlus size={15} />}
@@ -44,18 +42,16 @@ export function OperationControls({ node }: { node: PipelineNode }) {
         parameter.options ? (
           <div className="parameter" key={parameter.key}>
             <label htmlFor={`parameter-${parameter.key}`}>{parameter.label}</label>
-            <select
+            <Select
               id={`parameter-${parameter.key}`}
               aria-describedby={`parameter-${parameter.key}-help`}
-              value={node.parameters[parameter.key]}
-              onChange={(e) => updateParameter(node.id, parameter.key, e.target.value)}
-            >
-              {parameter.options.map((option) => (
-                <option key={option} value={option}>
-                  {option.replaceAll('-', ' ')}
-                </option>
-              ))}
-            </select>
+              value={String(node.parameters[parameter.key])}
+              options={parameter.options.map((option) => ({
+                value: option,
+                label: option.replaceAll('-', ' '),
+              }))}
+              onValueChange={(value) => updateParameter(node.id, parameter.key, value)}
+            />
             <p id={`parameter-${parameter.key}-help`}>{parameter.description}</p>
           </div>
         ) : (

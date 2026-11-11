@@ -6,7 +6,7 @@ import {
   type LessonKind,
   type PipelineDocument,
 } from '@opencv-weblab/pipeline';
-import { Button } from '@opencv-weblab/ui';
+import { Button, TextArea } from '@opencv-weblab/ui';
 import { readLearningProgress, writeLearningProgress } from './persistence';
 type Progress = { version: 1; prediction: string; reflection: string; completed: number[] };
 const empty = (): Progress => ({ version: 1, prediction: '', reflection: '', completed: [] });
@@ -97,7 +97,7 @@ function Guide({ projectId, lessonId }: { projectId: string; lessonId: LessonKin
           {step === 0 && (
             <label className="field">
               {guidance.prediction}
-              <textarea
+              <TextArea
                 aria-label="Your prediction"
                 placeholder="Write a prediction, or think it through before trying."
                 maxLength={2000}
@@ -117,7 +117,7 @@ function Guide({ projectId, lessonId }: { projectId: string; lessonId: LessonKin
           {step === 3 && (
             <label className="field">
               {guidance.reflect}
-              <textarea
+              <TextArea
                 aria-label="Your reflection"
                 placeholder="Describe what you observed and the evidence for it."
                 maxLength={2000}

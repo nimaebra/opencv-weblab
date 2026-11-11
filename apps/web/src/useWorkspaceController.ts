@@ -20,6 +20,7 @@ import {
 } from './persistence';
 import { independentDocument, readBackup, validateImage, createBackup } from './projectFiles';
 import { download } from './persistence';
+type WorkspacePanel = 'workspace' | 'tools' | 'inspector';
 export type SaveStatus = 'saving' | 'saved' | 'temporary' | 'failed';
 export function useWorkspaceController() {
   const doc = useLab((s) => s.document),
@@ -28,7 +29,13 @@ export function useWorkspaceController() {
     future = useLab((s) => s.future.length);
   const [hydrated, setHydrated] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saving');
-  const [panel, setPanel] = useState<'workspace' | 'tools' | 'inspector'>('workspace');
+  const [{ panel, animatePanel }, setPanelState] = useState({
+    panel: 'workspace' as WorkspacePanel,
+    animatePanel: false,
+  });
+  const setPanel = useCallback((panel: WorkspacePanel, animatePanel = false) => {
+    setPanelState({ panel, animatePanel });
+  }, []);
   const [dialog, setDialog] = useState<'projects' | 'export' | null>(null);
   const [exportTab, setExportTab] = useState<'python' | 'json'>('python');
   const [localProjects, setLocalProjects] = useState<
@@ -124,7 +131,7 @@ export function useWorkspaceController() {
       }
       if (
         (event.target as HTMLElement).closest(
-          'input,textarea,select,[contenteditable], [role="dialog"]',
+          'input,textarea,[role="combobox"],[role="listbox"],[contenteditable]',
         )
       )
         return;
@@ -151,7 +158,7 @@ export function useWorkspaceController() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [setPanel]);
   const chooseDocument = async (
     document: PipelineDocument,
     assets?: { id: string; blob: Blob }[],
@@ -348,6 +355,7 @@ export function useWorkspaceController() {
     future,
     saveStatus,
     panel,
+    animatePanel,
     setPanel,
     dialog,
     setDialog,

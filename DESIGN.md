@@ -173,7 +173,7 @@ The palette is pale, warm, and low in saturation around the content; the primary
 
 ### Primary
 
-- **Botanical Green** (`accent`): primary actions, the brand mark, saving feedback, and native checkbox/caret accents. `accent-hover` deepens the same action on hover.
+- **Botanical Green** (`accent`): primary actions, the brand mark, saving feedback, and checkbox, switch, and caret accents. `accent-hover` deepens the same action on hover.
 - **Leaf Wash** (`subtle`): the image-source action and supporting green surfaces.
 - **Focus Green** (`focus`): the shared visible keyboard outline.
 
@@ -278,9 +278,11 @@ Paper panels are flat structural regions. The signature operation card is a fixe
 
 ### Inputs / Fields
 
-Fields use white paper, thin pale borders, and softly squared corners. Search combines an SVG magnifier, editable text, and a small shortcut keycap in one row. Numeric parameters pair a labeled centered numeric field with a slim green range track and a circular thumb. Selects fill the inspector width.
+Fields use white paper, thin sage borders, and softly squared corners. Search combines an SVG magnifier, editable text, and a small shortcut keycap in one row. Numeric parameters pair a labeled numeric field with a green range track and circular thumb.
 
-Focus shares the green outline; the caret uses the action accent. Disabled inputs/selects use (0.5) opacity. Parameter explanations remain below the range or select in the explanation role. Errors include specific text and a recovery action where available.
+Select menus open next to the trigger and flip when space is tight. Options use a leaf-wash highlight and a checkmark for the current value. Keyboard interaction includes arrow navigation, typeahead, and Escape to return to the trigger. Checkboxes show a checkmark and switches use thumb position to communicate state. Pointer-opened menus and toggle indicators use short CSS motion that respects reduced-motion preferences.
+
+Use `Select`, `Checkbox`, `Switch`, `TextInput`, `TextArea`, and `Range` from `@opencv-weblab/ui`. Shared CSS properties such as `--control-height`, `--control-radius`, `--control-bg`, and `--control-selected` control their appearance. Use `className` for local sizing and `menuClassName` to customize a select's portaled menu. Connect field labels and help with native labels and `aria-describedby`.
 
 ### Navigation
 

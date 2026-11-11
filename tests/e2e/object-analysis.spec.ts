@@ -1,10 +1,11 @@
 import { test, expect, type Page } from '@playwright/test';
+import { chooseExample, chooseOption } from './select';
 import { makeExample, newNode } from '../../packages/pipeline/src/index';
 import { readFile } from 'node:fs/promises';
 async function example(page: Page, kind: string) {
   await page.goto('/');
   await expect(page.locator('.status-dot.ready')).toBeVisible({ timeout: 30000 });
-  await page.getByLabel('Example pipeline').selectOption(kind);
+  await chooseExample(page, kind);
   await expect(page.locator('.status-dot.ready')).toBeVisible();
 }
 test('measures components at full resolution, exports CSV, and restores the experiment', async ({
@@ -30,7 +31,7 @@ test('measures components at full resolution, exports CSV, and restores the expe
   expect(csv.trim().split('\n')).toHaveLength(3);
   await dialog.getByRole('button', { name: 'Close dialog' }).click();
   await page.locator('.react-flow__node').filter({ hasText: 'Connected components' }).click();
-  await page.getByLabel('Connectivity', { exact: true }).selectOption('4');
+  await chooseOption(page, 'Connectivity', '4');
   await expect(page.locator('.measurements-panel > summary')).toContainText('3 objects');
   await expect(page.locator('.save-indicator')).toHaveAttribute('title', 'Saved on this device');
   await page.reload();
@@ -175,7 +176,7 @@ test('paginates objects and keeps bounds aligned through zoom, pan and resize', 
   await expect.poll(() => yellowAtBounds(-30)).toBe(true);
   await page.setViewportSize({ width: 1280, height: 960 });
   await expect.poll(() => yellowAtBounds(-30)).toBe(true);
-  await page.getByLabel('Example pipeline').selectOption('isolate-objects');
+  await chooseExample(page, 'isolate-objects');
   await expect(page.locator('.frame-b .frame-heading')).toContainText('Apply mask');
   await page.locator('.react-flow__node').filter({ hasText: 'Global threshold' }).click();
   await page.getByRole('button', { name: '1 Connected components', exact: true }).click();

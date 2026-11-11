@@ -47,6 +47,7 @@ export function ExportDialog({ controller }: { controller: WorkspaceController }
         </div>
         <div className="export-tabs" role="group" aria-label="Pipeline format">
           <Button
+            static
             aria-pressed={exportTab === 'python'}
             icon={<Code2 size={15} />}
             onClick={() => setExportTab('python')}
@@ -54,6 +55,7 @@ export function ExportDialog({ controller }: { controller: WorkspaceController }
             Python / OpenCV
           </Button>
           <Button
+            static
             aria-pressed={exportTab === 'json'}
             icon={<Braces size={15} />}
             onClick={() => setExportTab('json')}
